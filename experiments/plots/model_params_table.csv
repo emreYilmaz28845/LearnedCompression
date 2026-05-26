@@ -1,0 +1,8 @@
+variant,label,total_params,params_millions
+A,Baseline,5075843,5.075843
+B,Encoder SE,5078027,5.078027
+C,Encoder+Decoder SE,5080211,5.080211
+bmshj2018_factorized,BMSHJ 2018 Factorized,2998147,2.998147
+mbt2018_mean,MBT 2018 Mean,7028003,7.028003
+mbt2018,MBT 2018,14130467,14.130467
+cheng2020_anchor,Cheng 2020 Anchor,11833149,11.833149

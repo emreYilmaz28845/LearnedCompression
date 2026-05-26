@@ -1,0 +1,11 @@
+{
+  "variant": "bmshj2018_factorized",
+  "run_name": "variant_bmshj2018_factorized_lmbda_0.0035_quality_2_mse_20260526_124510",
+  "lmbda": 0.0035,
+  "quality": 2,
+  "avg_bpp": 0.1882158252927992,
+  "avg_psnr": 28.217926966310426,
+  "avg_ms_ssim": 0.9360476210713387,
+  "avg_ms_ssim_db": 12.134097744367315,
+  "total_params": 2998147
+}

@@ -1,0 +1,11 @@
+{
+  "variant": "cheng2020_anchor",
+  "run_name": "variant_cheng2020_anchor_lmbda_0.0067_quality_3_mse_20260526_124510",
+  "lmbda": 0.0067,
+  "quality": 3,
+  "avg_bpp": 0.26864900691887467,
+  "avg_psnr": 31.31135305320964,
+  "avg_ms_ssim": 0.9625516980886459,
+  "avg_ms_ssim_db": 14.458968524027966,
+  "total_params": 11833149
+}

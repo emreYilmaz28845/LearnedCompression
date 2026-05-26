@@ -1,0 +1,11 @@
+{
+  "variant": "mbt2018",
+  "run_name": "variant_mbt2018_lmbda_0.013_quality_4_mse_20260526_124510",
+  "lmbda": 0.013,
+  "quality": 4,
+  "avg_bpp": 0.4301514547680401,
+  "avg_psnr": 33.18559066732006,
+  "avg_ms_ssim": 0.9757331932584444,
+  "avg_ms_ssim_db": 16.328408018655413,
+  "total_params": 14130467
+}

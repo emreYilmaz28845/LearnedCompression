@@ -1,0 +1,11 @@
+{
+  "variant": "mbt2018_mean",
+  "run_name": "variant_mbt2018_mean_lmbda_0.0067_quality_3_mse_20260526_124510",
+  "lmbda": 0.0067,
+  "quality": 3,
+  "avg_bpp": 0.30732451586259735,
+  "avg_psnr": 31.128920679899732,
+  "avg_ms_ssim": 0.9614850630362829,
+  "avg_ms_ssim_db": 14.331305671661596,
+  "total_params": 7028003
+}
