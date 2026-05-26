@@ -1,0 +1,22 @@
+name: learned-image-compression
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pip
+  - numpy<2
+  - pytorch>=2.5
+  - torchvision>=0.20
+  - pytorch-cuda=12.1
+  - pillow
+  - pandas
+  - matplotlib
+  - scipy
+  - tqdm
+  - pyyaml
+  - jupyterlab
+  - pytest
+  - pip:
+      - compressai==1.2.8

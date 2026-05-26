@@ -1,0 +1,11 @@
+{
+  "variant": "B",
+  "run_name": "variant_B_lmbda_0.013_quality_4_mse_20260501_011208",
+  "lmbda": 0.013,
+  "quality": 4,
+  "avg_bpp": 0.48698804760351777,
+  "avg_psnr": 32.988453257828716,
+  "avg_ms_ssim": 0.9747745742400488,
+  "avg_ms_ssim_db": 16.170174748400317,
+  "total_params": 5078027
+}

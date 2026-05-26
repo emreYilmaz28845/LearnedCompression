@@ -1,0 +1,10 @@
+torch>=2.0
+torchvision>=0.15
+compressai>=1.2.0
+pytorch-msssim>=1.0.0
+numpy
+scipy
+matplotlib
+tensorboard
+Pillow
+PyYAML

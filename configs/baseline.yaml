@@ -1,0 +1,39 @@
+# Experiment configuration for learned image compression
+
+# Lambda values controlling rate-distortion trade-off
+# Higher lambda = more bits allocated to reduce distortion
+lambdas: [0.0018, 0.0035, 0.0067, 0.013]
+
+# CompressAI pretrained quality levels paired with the lambda values above.
+# This gives the pretrained baseline four real RD operating points.
+qualities: [1, 2, 3, 4]
+
+# Training
+epochs: 100
+batch_size: 8
+patch_size: 256
+lr: 1.0e-4
+num_workers: 4
+seed: 42
+
+# Scheduler (ReduceLROnPlateau)
+scheduler:
+  factor: 0.1
+  patience: 10
+
+# Early stopping
+early_stop_patience: 20
+
+# Distortion metric: "mse" or "msssim"
+distortion: mse
+
+# SE blocks (variant B: encoder, variant C: encoder+decoder)
+se_reduction: 16
+
+# Paths
+data_dir: datasets
+clic_dir: datasets/clic_images
+kodak_dir: datasets/kodak
+checkpoint_dir: checkpoints
+results_dir: experiments/results
+plots_dir: experiments/plots
