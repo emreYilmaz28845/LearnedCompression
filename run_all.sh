@@ -38,6 +38,18 @@ for item in value:
 PY
 }
 
+contains_value() {
+    local needle="$1"
+    shift
+    local item
+    for item in "$@"; do
+        if [ "$item" = "$needle" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
 TRAIN_DIR="$(config_value paths.clic_train_dir)"
 VAL_DIR="$(config_value paths.clic_val_dir)"
 KODAK_DIR="$(config_value paths.kodak_dir)"
@@ -47,35 +59,68 @@ PLOTS_DIR="$(config_value paths.plots_dir)"
 RECON_DIR="$(config_value paths.recon_dir)"
 EPOCHS="$(config_value training.epochs)"
 BATCH_SIZE="$(config_value training.batch_size)"
-FREEZE_MODE="$(config_value training.freeze_mode)"
+DISTORTION="$(config_value training.distortion)"
 
 mapfile -t LAMBDAS < <(config_list lambdas)
 mapfile -t QUALITIES < <(config_list qualities)
 mapfile -t TRAINED_VARIANTS < <(config_list pipeline.trained_variants)
+mapfile -t FREEZE_MODES < <(config_list pipeline.freeze_modes)
+mapfile -t ATTENTION_ONLY_VARIANTS < <(config_list pipeline.attention_only_variants)
 mapfile -t REFERENCE_VARIANTS < <(config_list pipeline.reference_variants)
 
 pointer_file() {
     local variant="$1"
     local lmbda="$2"
     local quality="$3"
-    echo "$CKPT_DIR/latest_variant_${variant}_lmbda_${lmbda}_quality_${quality}_mse_freeze_${FREEZE_MODE}.txt"
+    local freeze_mode="$4"
+    echo "$CKPT_DIR/latest_variant_${variant}_lmbda_${lmbda}_quality_${quality}_${DISTORTION}_freeze_${freeze_mode}.txt"
+}
+
+run_dir_for() {
+    local variant="$1"
+    local lmbda="$2"
+    local quality="$3"
+    local freeze_mode="$4"
+    echo "$CKPT_DIR/variant_${variant}_lmbda_${lmbda}_quality_${quality}_${DISTORTION}_freeze_${freeze_mode}_${RUN_TIMESTAMP}"
 }
 
 train_with_resume() {
     local variant="$1"
     local lmbda="$2"
     local quality="$3"
-    local run_dir="$CKPT_DIR/variant_${variant}_lmbda_${lmbda}_quality_${quality}_mse_freeze_${FREEZE_MODE}_${RUN_TIMESTAMP}"
+    local freeze_mode="$4"
+    local run_dir
+    run_dir="$(run_dir_for "$variant" "$lmbda" "$quality" "$freeze_mode")"
     local resume_args=()
 
     if [ -f "$run_dir/checkpoint_last.pth.tar" ]; then
-        echo "Resuming variant ${variant}, lambda=${lmbda}, quality=${quality} from checkpoint_last.pth.tar"
+        echo "Resuming variant ${variant}, freeze=${freeze_mode}, lambda=${lmbda}, quality=${quality}"
         resume_args=(--resume "$run_dir/checkpoint_last.pth.tar")
     fi
 
     python train.py --config "$CONFIG_PATH" --variant "$variant" --lmbda "$lmbda" --quality "$quality" \
         --train-dir "$TRAIN_DIR" --val-dir "$VAL_DIR" --epochs "$EPOCHS" --batch-size "$BATCH_SIZE" \
-        --freeze-mode "$FREEZE_MODE" --save-dir "$CKPT_DIR" --timestamp "$RUN_TIMESTAMP" "${resume_args[@]}"
+        --freeze-mode "$freeze_mode" --save-dir "$CKPT_DIR" --timestamp "$RUN_TIMESTAMP" "${resume_args[@]}"
+}
+
+evaluate_reference_variant() {
+    local variant="$1"
+    local lmbda="$2"
+    local quality="$3"
+    python evaluate.py --config "$CONFIG_PATH" --variant "$variant" --quality "$quality" --lmbda "$lmbda" \
+        --data-dir "$KODAK_DIR" --output "$RESULTS_DIR" --recon-dir "$RECON_DIR" \
+        --run-name "variant_${variant}_lmbda_${lmbda}_quality_${quality}_${DISTORTION}_reference_${RUN_TIMESTAMP}"
+}
+
+evaluate_trained_variant() {
+    local variant="$1"
+    local lmbda="$2"
+    local quality="$3"
+    local freeze_mode="$4"
+    local checkpoint
+    checkpoint="$(cat "$(pointer_file "$variant" "$lmbda" "$quality" "$freeze_mode")")"
+    python evaluate.py --config "$CONFIG_PATH" --variant "$variant" --quality "$quality" --lmbda "$lmbda" \
+        --checkpoint "$checkpoint" --data-dir "$KODAK_DIR" --output "$RESULTS_DIR" --recon-dir "$RECON_DIR"
 }
 
 echo "=== Step 1: Check datasets ==="
@@ -84,13 +129,20 @@ test -d "$VAL_DIR" || { echo "Missing validation split at $VAL_DIR"; exit 1; }
 test -d "$KODAK_DIR" || { echo "Missing Kodak images at $KODAK_DIR"; exit 1; }
 
 echo ""
-echo "=== Step 2: Train learned variants ==="
-for variant in "${TRAINED_VARIANTS[@]}"; do
-    for idx in "${!LAMBDAS[@]}"; do
-        lmbda="${LAMBDAS[$idx]}"
-        quality="${QUALITIES[$idx]}"
-        echo "--- Variant ${variant}, lambda=${lmbda}, quality=${quality} ---"
-        train_with_resume "$variant" "$lmbda" "$quality"
+echo "=== Step 2: Train learned variants across freeze modes ==="
+for freeze_mode in "${FREEZE_MODES[@]}"; do
+    echo "--- Freeze mode: ${freeze_mode} ---"
+    for variant in "${TRAINED_VARIANTS[@]}"; do
+        if [ "$freeze_mode" = "attention_only" ] && ! contains_value "$variant" "${ATTENTION_ONLY_VARIANTS[@]}"; then
+            echo "Skipping invalid combination: variant=${variant}, freeze_mode=${freeze_mode}"
+            continue
+        fi
+        for idx in "${!LAMBDAS[@]}"; do
+            lmbda="${LAMBDAS[$idx]}"
+            quality="${QUALITIES[$idx]}"
+            echo "Training variant=${variant}, freeze=${freeze_mode}, lambda=${lmbda}, quality=${quality}"
+            train_with_resume "$variant" "$lmbda" "$quality" "$freeze_mode"
+        done
     done
 done
 
@@ -100,21 +152,23 @@ for variant in "${REFERENCE_VARIANTS[@]}"; do
     for idx in "${!LAMBDAS[@]}"; do
         lmbda="${LAMBDAS[$idx]}"
         quality="${QUALITIES[$idx]}"
-        echo "--- Evaluating ${variant}, lambda=${lmbda}, quality=${quality} ---"
-        python evaluate.py --config "$CONFIG_PATH" --variant "$variant" --quality "$quality" --lmbda "$lmbda" \
-            --data-dir "$KODAK_DIR" --output "$RESULTS_DIR" --recon-dir "$RECON_DIR" \
-            --run-name "variant_${variant}_lmbda_${lmbda}_quality_${quality}_mse_freeze_${FREEZE_MODE}_${RUN_TIMESTAMP}"
+        echo "Evaluating reference variant=${variant}, lambda=${lmbda}, quality=${quality}"
+        evaluate_reference_variant "$variant" "$lmbda" "$quality"
     done
 done
 
-for variant in "${TRAINED_VARIANTS[@]}"; do
-    for idx in "${!LAMBDAS[@]}"; do
-        lmbda="${LAMBDAS[$idx]}"
-        quality="${QUALITIES[$idx]}"
-        checkpoint="$(cat "$(pointer_file "$variant" "$lmbda" "$quality")")"
-        echo "--- Evaluating ${variant}, lambda=${lmbda}, quality=${quality} ---"
-        python evaluate.py --config "$CONFIG_PATH" --variant "$variant" --quality "$quality" --lmbda "$lmbda" \
-            --checkpoint "$checkpoint" --data-dir "$KODAK_DIR" --output "$RESULTS_DIR" --recon-dir "$RECON_DIR"
+for freeze_mode in "${FREEZE_MODES[@]}"; do
+    echo "--- Evaluating freeze mode: ${freeze_mode} ---"
+    for variant in "${TRAINED_VARIANTS[@]}"; do
+        if [ "$freeze_mode" = "attention_only" ] && ! contains_value "$variant" "${ATTENTION_ONLY_VARIANTS[@]}"; then
+            continue
+        fi
+        for idx in "${!LAMBDAS[@]}"; do
+            lmbda="${LAMBDAS[$idx]}"
+            quality="${QUALITIES[$idx]}"
+            echo "Evaluating variant=${variant}, freeze=${freeze_mode}, lambda=${lmbda}, quality=${quality}"
+            evaluate_trained_variant "$variant" "$lmbda" "$quality" "$freeze_mode"
+        done
     done
 done
 

@@ -39,6 +39,8 @@ evaluation:
 
 pipeline:
   trained_variants: [A_ft, B, C]
+  freeze_modes: [none, frozen_hyperprior, attention_only]
+  attention_only_variants: [B, C]
   reference_variants:
     - A
     - bmshj2018_factorized
