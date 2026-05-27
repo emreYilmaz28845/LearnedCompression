@@ -1,39 +1,47 @@
 # Experiment configuration for learned image compression
 
-# Lambda values controlling rate-distortion trade-off
-# Higher lambda = more bits allocated to reduce distortion
 lambdas: [0.0018, 0.0035, 0.0067, 0.013]
-
-# CompressAI pretrained quality levels paired with the lambda values above.
-# This gives the pretrained baseline four real RD operating points.
 qualities: [1, 2, 3, 4]
 
-# Training
-epochs: 100
-batch_size: 8
-patch_size: 256
-lr: 1.0e-4
-num_workers: 4
-seed: 42
+paths:
+  clic_train_dir: datasets/clic_images/train
+  clic_val_dir: datasets/clic_images/validation
+  kodak_dir: datasets/kodak
+  checkpoint_dir: checkpoints
+  results_dir: experiments/results
+  plots_dir: experiments/plots
+  recon_dir: experiments/reconstructions
 
-# Scheduler (ReduceLROnPlateau)
+training:
+  epochs: 100
+  batch_size: 32
+  patch_size: 256
+  lr: 1.0e-4
+  se_lr: 1.0e-3
+  num_workers: 4
+  seed: 42
+  distortion: mse
+  freeze_mode: none
+  early_stop_patience: 20
+  deterministic: true
+  pin_memory: true
+  drop_last: true
+
 scheduler:
   factor: 0.1
   patience: 10
 
-# Early stopping
-early_stop_patience: 20
+evaluation:
+  compute_coded_bpp: true
+  save_reconstructions: true
+  reconstruction_limit: 4
+  reconstruction_indices: [0, 1, 2, 3]
 
-# Distortion metric: "mse" or "msssim"
-distortion: mse
-
-# SE blocks (variant B: encoder, variant C: encoder+decoder)
-se_reduction: 16
-
-# Paths
-data_dir: datasets
-clic_dir: datasets/clic_images
-kodak_dir: datasets/kodak
-checkpoint_dir: checkpoints
-results_dir: experiments/results
-plots_dir: experiments/plots
+pipeline:
+  trained_variants: [A_ft, B, C]
+  reference_variants:
+    - A
+    - bmshj2018_factorized
+    - mbt2018_mean
+    - mbt2018
+    - cheng2020_anchor
