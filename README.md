@@ -2,7 +2,7 @@
 
 CS566 Deep Learning — Spring 2026
 
-This project adds lightweight Squeeze-and-Excitation (SE) channel attention blocks to the Ballé et al. scale hyperprior model and evaluates rate-distortion performance on the Kodak benchmark. The training default is CLIC images because CLIC is built for image compression research. The evaluation pipeline also supports several pretrained CompressAI reference models for direct Kodak comparisons.
+This project adds lightweight Squeeze-and-Excitation (SE) channel attention blocks to the Ballé et al. scale hyperprior model and evaluates rate-distortion performance on the Kodak benchmark. The default training protocol now uses explicit `CLIC` train/validation splits, includes a fine-tuned vanilla control baseline, and reports both estimated and true coded bitrate.
 
 ## Setup
 
@@ -15,10 +15,10 @@ pip install -r requirements.txt
 
 ```
 ├── README.md
-├── train.py                   # Training script for variants A, B, C
-├── evaluate.py                # Kodak evaluation (PSNR, MS-SSIM, bpp, BD-rate)
-├── plot.py                    # Rate-distortion curve plotting
-├── run_all.sh                 # End-to-end experiment pipeline
+├── train.py                   # Training script for A, A_ft, B, C
+├── evaluate.py                # Kodak evaluation (estimated+coded bpp, PSNR, MS-SSIM, recon export)
+├── plot.py                    # Rate-distortion curve plotting and BD-rate summaries
+├── run_all.sh                 # Config-driven end-to-end experiment pipeline
 ├── requirements.txt
 ├── models/
 │   ├── __init__.py
@@ -38,7 +38,8 @@ pip install -r requirements.txt
 
 | Variant | Description |
 |---------|-------------|
-| A | Pretrained CompressAI scale hyperprior baseline |
+| A | Pretrained CompressAI scale hyperprior reference |
+| A_ft | Fine-tuned vanilla `bmshj2018_hyperprior` control baseline |
 | B | Encoder-only SE attention |
 | C | Encoder+decoder SE attention |
 
@@ -65,22 +66,17 @@ Or run individual steps:
 
 ```bash
 # 1. Check datasets
-find datasets/clic_images -type f | head
+find datasets/clic_images/train -type f | head
+find datasets/clic_images/validation -type f | head
 find datasets/kodak -type f | head
 
-# 2. Train (example: variant C, lambda=0.0067)
-python train.py --variant C --lmbda 0.0067 --quality 3 \
-    --data-dir datasets/clic_images --epochs 100
+# 2. Train (example: fine-tuned vanilla control baseline)
+python train.py --variant A_ft --lmbda 0.0067 --quality 3
 
 # 3. Evaluate on Kodak
-python evaluate.py --variant C --lmbda 0.0067 \
-    --checkpoint "$(cat checkpoints/latest_variant_C_lmbda_0.0067_quality_3_mse.txt)" \
+python evaluate.py --variant B --lmbda 0.0067 \
+    --checkpoint "$(cat checkpoints/latest_variant_B_lmbda_0.0067_quality_3_mse_freeze_none.txt)" \
     --data-dir datasets/kodak
-
-# 4. Evaluate a pretrained comparison model on Kodak
-python evaluate.py --variant mbt2018 --quality 3 --lmbda 0.0067 \
-    --data-dir datasets/kodak --output experiments/results \
-    --run-name variant_mbt2018_lmbda_0.0067_quality_3_mse_manual
 
 # 5. Plot RD curves (after evaluating all variants and lambdas)
 python plot.py --results-dir experiments/results --output experiments/plots
@@ -98,7 +94,7 @@ For a tiny timed training check with TensorBoard logging:
 
 ```bash
 python train.py --variant B --lmbda 0.0018 --quality 1 \
-    --data-dir datasets/clic_images --epochs 1 --batch-size 1 \
+    --epochs 1 --batch-size 1 \
     --patch-size 64 --num-workers 0 \
     --max-train-samples 2 --max-val-samples 2 \
     --save-dir /tmp/lc_log_check
@@ -106,37 +102,39 @@ python train.py --variant B --lmbda 0.0018 --quality 1 \
 
 ## Training Details
 
-- **Training Dataset**: CLIC images, 256x256 random crops
+- **Training Dataset**: `datasets/clic_images/train` with validation from `datasets/clic_images/validation`
 - **Evaluation**: Kodak PhotoCD (24 images, 768x512)
 - **Lambda values**: 0.0018, 0.0035, 0.0067, 0.013
 - **CompressAI quality levels**: 1, 2, 3, 4 paired with the lambda values for RD operating points
-- **Optimizer**: Adam, lr=1e-4, ReduceLROnPlateau (factor=0.1, patience=10)
-- **Batch size**: 8
+- **Optimizer**: Adam, config-driven defaults from `configs/baseline.yaml`
+- **Batch size**: 32 by default
 - **Distortion**: MSE (primary), MS-SSIM (supplementary via `--distortion msssim`)
+- **Freeze modes**: `none`, `frozen_hyperprior`, `attention_only`
 
 ## Kodak Evaluation Variants
 
 `evaluate.py` supports both trained project variants and pretrained CompressAI zoo models:
 
-- Trained/local variants: `A`, `B`, `C`
+- Trained/local variants: `A_ft`, `B`, `C`
+- Reference-only baseline: `A`
 - Pretrained comparison variants: `bmshj2018_factorized`, `mbt2018_mean`, `mbt2018`, `cheng2020_anchor`
 
-For pretrained comparison variants, do not pass `--checkpoint`.
+For pretrained comparison variants and `A`, do not pass `--checkpoint`.
 
 ## Training Logs
 
-Training writes TensorBoard logs under each checkpoint folder, including loss, bpp, PSNR, distortion, auxiliary entropy loss, gradient norm, learning rates, epoch time, seconds per step, GPU memory, and GPU utilization when `nvidia-smi` is available.
+Training writes TensorBoard logs under each checkpoint folder, including loss, estimated bpp, PSNR, distortion, auxiliary entropy loss, gradient norm, learning rates, epoch time, seconds per step, GPU memory, and GPU utilization when `nvidia-smi` is available.
 
 Run directories are timestamped by default:
 
 ```text
-checkpoints/variant_B_lmbda_0.0018_quality_1_mse_20260430_153000/
+checkpoints/variant_B_lmbda_0.0018_quality_1_mse_freeze_none_20260430_153000/
 ```
 
 Each run also writes a stable latest-checkpoint pointer:
 
 ```text
-checkpoints/latest_variant_B_lmbda_0.0018_quality_1_mse.txt
+checkpoints/latest_variant_B_lmbda_0.0018_quality_1_mse_freeze_none.txt
 ```
 
 TensorBoard can read all runs with:
@@ -151,8 +149,8 @@ Training writes `checkpoint_last.pth.tar` every epoch. For a single run:
 
 ```bash
 python train.py --variant B --lmbda 0.0018 --quality 1 \
-    --data-dir datasets/clic_images --epochs 100 \
-    --resume checkpoints/variant_B_lmbda_0.0018_quality_1_mse_20260430_153000/checkpoint_last.pth.tar
+    --epochs 100 \
+    --resume checkpoints/variant_B_lmbda_0.0018_quality_1_mse_freeze_none_20260430_153000/checkpoint_last.pth.tar
 ```
 
 For the full pipeline, restart with the same timestamp:
@@ -161,7 +159,7 @@ For the full pipeline, restart with the same timestamp:
 RUN_TIMESTAMP=20260430_153000 bash run_all.sh
 ```
 
-The script will resume B/C runs that already have `checkpoint_last.pth.tar`.
+The script will resume `A_ft/B/C` runs that already have `checkpoint_last.pth.tar`.
 
 ## Architecture
 
