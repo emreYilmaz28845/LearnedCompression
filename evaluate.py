@@ -11,6 +11,7 @@ import copy
 import csv
 import json
 import math
+import time
 from pathlib import Path
 
 import numpy as np
@@ -156,6 +157,33 @@ def compute_coded_reconstruction(model, x, num_pixels):
     return decoded["x_hat"].clamp(0, 1), coded_bits / num_pixels
 
 
+def synchronize_device(device):
+    if device.type == "cuda":
+        torch.cuda.synchronize(device)
+
+
+def timed_forward(model, x, device):
+    synchronize_device(device)
+    start = time.perf_counter()
+    out = model(x)
+    synchronize_device(device)
+    elapsed_ms = (time.perf_counter() - start) * 1000.0
+    return out, elapsed_ms
+
+
+def timed_coded_reconstruction(model, x, num_pixels):
+    encode_start = time.perf_counter()
+    encoded = model.compress(x)
+    encode_ms = (time.perf_counter() - encode_start) * 1000.0
+
+    decode_start = time.perf_counter()
+    decoded = model.decompress(encoded["strings"], encoded["shape"])
+    decode_ms = (time.perf_counter() - decode_start) * 1000.0
+
+    coded_bits = sum(len(stream) * 8 for group in encoded["strings"] for stream in group)
+    return decoded["x_hat"].clamp(0, 1), coded_bits / num_pixels, encode_ms, decode_ms
+
+
 def build_coding_model(model):
     """Create a CPU copy for reliable entropy coding during evaluation."""
     coding_model = copy.deepcopy(model).cpu()
@@ -229,13 +257,19 @@ def evaluate_model(
             h, w = orig_h.item(), orig_w.item()
             num_pixels = h * w
 
-            out = model(x)
+            out, forward_ms = timed_forward(model, x, device)
             estimated_bpp = estimate_bpp_from_likelihoods(out, num_pixels)
 
             x_hat = out["x_hat"].clamp(0, 1)
             coded_bpp = None
+            encode_ms = None
+            decode_ms = None
             if compute_coded_bpp:
-                x_hat, coded_bpp = compute_coded_reconstruction(coding_model, x.cpu(), num_pixels)
+                x_hat, coded_bpp, encode_ms, decode_ms = timed_coded_reconstruction(
+                    coding_model,
+                    x.cpu(),
+                    num_pixels,
+                )
 
             x_cropped = x[:, :, :h, :w]
             x_hat_cropped = x_hat[:, :, :h, :w]
@@ -249,6 +283,11 @@ def evaluate_model(
                 "estimated_bpp": estimated_bpp,
                 "coded_bpp": coded_bpp,
                 "bpp": estimated_bpp,
+                "forward_ms": forward_ms,
+                "encode_ms": encode_ms,
+                "decode_ms": decode_ms,
+                "codec_total_ms": (encode_ms + decode_ms) if encode_ms is not None and decode_ms is not None else None,
+                "num_pixels": num_pixels,
                 "psnr": psnr,
                 "ms_ssim": msssim_val,
                 "ms_ssim_db": msssim_db,
@@ -259,9 +298,15 @@ def evaluate_model(
                 maybe_save_reconstruction(recon_dir, image_stem, x_cropped, x_hat_cropped)
 
             coded_fragment = f" coded_bpp={coded_bpp:.4f}" if coded_bpp is not None else ""
+            timing_fragment = (
+                f" enc={encode_ms:.1f}ms dec={decode_ms:.1f}ms"
+                if encode_ms is not None and decode_ms is not None
+                else ""
+            )
             print(
                 f"  Image {i+1:2d}: est_bpp={estimated_bpp:.4f}{coded_fragment} "
                 f"PSNR={psnr:.2f}dB MS-SSIM={msssim_val:.4f}"
+                f" fwd={forward_ms:.1f}ms{timing_fragment}"
             )
 
     return results
@@ -307,6 +352,19 @@ def main():
     avg_psnr = np.mean([r["psnr"] for r in results])
     avg_msssim = np.mean([r["ms_ssim"] for r in results])
     avg_msssim_db = np.mean([r["ms_ssim_db"] for r in results])
+    avg_forward_ms = np.mean([r["forward_ms"] for r in results])
+    encode_values = [r["encode_ms"] for r in results if r["encode_ms"] is not None]
+    decode_values = [r["decode_ms"] for r in results if r["decode_ms"] is not None]
+    total_codec_values = [r["codec_total_ms"] for r in results if r["codec_total_ms"] is not None]
+    avg_encode_ms = np.mean(encode_values) if encode_values else None
+    avg_decode_ms = np.mean(decode_values) if decode_values else None
+    avg_codec_total_ms = np.mean(total_codec_values) if total_codec_values else None
+    avg_num_pixels = np.mean([r["num_pixels"] for r in results])
+    avg_megapixels = avg_num_pixels / 1_000_000.0
+    avg_forward_mpix_per_s = avg_megapixels / (avg_forward_ms / 1000.0) if avg_forward_ms > 0 else None
+    avg_encode_mpix_per_s = avg_megapixels / (avg_encode_ms / 1000.0) if avg_encode_ms else None
+    avg_decode_mpix_per_s = avg_megapixels / (avg_decode_ms / 1000.0) if avg_decode_ms else None
+    avg_codec_total_mpix_per_s = avg_megapixels / (avg_codec_total_ms / 1000.0) if avg_codec_total_ms else None
 
     print("\n--- Averages ---")
     print(f"  Estimated BPP: {avg_estimated_bpp:.4f}")
@@ -315,6 +373,11 @@ def main():
     print(f"  PSNR:          {avg_psnr:.2f} dB")
     print(f"  MS-SSIM:       {avg_msssim:.4f}")
     print(f"  MS-SSIM (dB):  {avg_msssim_db:.2f}")
+    print(f"  Forward time:  {avg_forward_ms:.2f} ms/image")
+    if avg_encode_ms is not None and avg_decode_ms is not None:
+        print(f"  Encode time:   {avg_encode_ms:.2f} ms/image")
+        print(f"  Decode time:   {avg_decode_ms:.2f} ms/image")
+        print(f"  Codec total:   {avg_codec_total_ms:.2f} ms/image")
 
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -330,6 +393,11 @@ def main():
                 "estimated_bpp",
                 "coded_bpp",
                 "bpp",
+                "forward_ms",
+                "encode_ms",
+                "decode_ms",
+                "codec_total_ms",
+                "num_pixels",
                 "psnr",
                 "ms_ssim",
                 "ms_ssim_db",
@@ -351,6 +419,15 @@ def main():
         "avg_psnr": avg_psnr,
         "avg_ms_ssim": avg_msssim,
         "avg_ms_ssim_db": avg_msssim_db,
+        "avg_num_pixels": avg_num_pixels,
+        "avg_forward_ms": avg_forward_ms,
+        "avg_encode_ms": avg_encode_ms,
+        "avg_decode_ms": avg_decode_ms,
+        "avg_codec_total_ms": avg_codec_total_ms,
+        "avg_forward_mpix_per_s": avg_forward_mpix_per_s,
+        "avg_encode_mpix_per_s": avg_encode_mpix_per_s,
+        "avg_decode_mpix_per_s": avg_decode_mpix_per_s,
+        "avg_codec_total_mpix_per_s": avg_codec_total_mpix_per_s,
         "total_params": total_params,
         "compute_coded_bpp": args.compute_coded_bpp,
         "saved_reconstructions": bool(args.save_reconstructions),

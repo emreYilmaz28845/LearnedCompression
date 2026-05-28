@@ -44,6 +44,7 @@ VARIANT_ORDER = [
     "mbt2018",
     "cheng2020_anchor",
 ]
+PROJECT_VARIANTS = ["A_ft", "A", "B", "C"]
 VARIANT_COLORS = {
     "A": "#4D4D4D",
     "A_ft": "#111111",
@@ -186,6 +187,30 @@ def select_curve_data(data, metric):
     return curve_data
 
 
+def subset_curve_data(curve_data, variants):
+    return {variant: curve_data[variant] for variant in variants if variant in curve_data}
+
+
+def axis_bounds(curve_data, metric):
+    all_bpps = []
+    all_vals = []
+    for points in curve_data.values():
+        all_bpps.extend(plot_bpp(point) for point in points)
+        all_vals.extend(
+            point["avg_psnr"] if metric == "psnr" else point["avg_ms_ssim_db"]
+            for point in points
+        )
+
+    if not all_bpps or not all_vals:
+        return None, None
+
+    x_min, x_max = min(all_bpps), max(all_bpps)
+    y_min, y_max = min(all_vals), max(all_vals)
+    x_pad = max((x_max - x_min) * 0.08, 0.005)
+    y_pad = max((y_max - y_min) * 0.15, 0.08)
+    return (x_min - x_pad, x_max + x_pad), (y_min - y_pad, y_max + y_pad)
+
+
 def style_axes(ax):
     ax.set_facecolor("#FAFAFA")
     ax.spines["top"].set_visible(False)
@@ -195,6 +220,49 @@ def style_axes(ax):
     ax.tick_params(colors="#333333", labelsize=11)
     ax.grid(True, which="major", color="#D9D9D9", linewidth=0.8, alpha=0.8)
     ax.grid(True, which="minor", color="#EEEEEE", linewidth=0.6, alpha=0.7)
+
+
+def apply_horizontal_jitter(records, threshold=0.3, max_jitter=0.1):
+    if not records:
+        return records
+
+    records = sorted(records, key=lambda record: record["x"])
+    groups = []
+    current = [records[0]]
+    for record in records[1:]:
+        if abs(record["x"] - current[-1]["x"]) <= threshold:
+            current.append(record)
+        else:
+            groups.append(current)
+            current = [record]
+    groups.append(current)
+
+    for group in groups:
+        if len(group) == 1:
+            group[0]["x_plot"] = group[0]["x"]
+            continue
+        offsets = np.linspace(-max_jitter, max_jitter, len(group))
+        for record, offset in zip(group, offsets):
+            record["x_plot"] = record["x"] + float(offset)
+    return records
+
+
+def broken_runtime_limits(values):
+    finite = sorted(float(v) for v in values if v is not None and math.isfinite(float(v)))
+    if len(finite) < 3:
+        return None
+
+    top = finite[-1]
+    second = finite[-2]
+    if top < second * 2.5:
+        return None
+
+    lower_max = second * 1.18
+    upper_min = max(second * 1.55, top * 0.82)
+    upper_max = top * 1.08
+    if upper_min >= upper_max:
+        return None
+    return (0.0, lower_max), (upper_min, upper_max)
 
 
 def write_summary_table(data, output_dir):
@@ -213,6 +281,14 @@ def write_summary_table(data, output_dir):
                 "avg_psnr": point.get("avg_psnr"),
                 "avg_ms_ssim": point.get("avg_ms_ssim"),
                 "avg_ms_ssim_db": point.get("avg_ms_ssim_db"),
+                "avg_forward_ms": point.get("avg_forward_ms"),
+                "avg_encode_ms": point.get("avg_encode_ms"),
+                "avg_decode_ms": point.get("avg_decode_ms"),
+                "avg_codec_total_ms": point.get("avg_codec_total_ms"),
+                "avg_forward_mpix_per_s": point.get("avg_forward_mpix_per_s"),
+                "avg_encode_mpix_per_s": point.get("avg_encode_mpix_per_s"),
+                "avg_decode_mpix_per_s": point.get("avg_decode_mpix_per_s"),
+                "avg_codec_total_mpix_per_s": point.get("avg_codec_total_mpix_per_s"),
                 "total_params": point.get("total_params"),
                 "run_name": point.get("run_name"),
             })
@@ -304,6 +380,307 @@ def write_parameter_table(data, output_dir):
     print(f"Saved: {svg_path}")
 
 
+def write_runtime_tradeoff_tables(data, output_dir):
+    output_dir = Path(output_dir)
+    curve_data = select_curve_data(data, metric="psnr")
+    point_rows = []
+    summary_rows = []
+
+    for variant in ordered_variants(curve_data):
+        points = curve_data[variant]
+        timed_points = [
+            point for point in points
+            if point.get("avg_forward_ms") is not None
+            and point.get("avg_encode_ms") is not None
+            and point.get("avg_decode_ms") is not None
+            and point.get("avg_codec_total_ms") is not None
+        ]
+        if not timed_points:
+            continue
+
+        points_for_summary = []
+        for point in timed_points:
+            point_rows.append({
+                "variant": variant,
+                "label": VARIANT_LABELS.get(variant, variant),
+                "freeze_mode": point.get("freeze_mode"),
+                "quality": point.get("quality"),
+                "lmbda": point.get("lmbda"),
+                "total_params": point.get("total_params"),
+                "params_millions": (
+                    point.get("total_params") / 1_000_000.0
+                    if point.get("total_params") is not None
+                    else None
+                ),
+                "avg_coded_bpp": point.get("avg_coded_bpp"),
+                "avg_psnr": point.get("avg_psnr"),
+                "avg_forward_ms": point.get("avg_forward_ms"),
+                "avg_encode_ms": point.get("avg_encode_ms"),
+                "avg_decode_ms": point.get("avg_decode_ms"),
+                "avg_codec_total_ms": point.get("avg_codec_total_ms"),
+                "avg_forward_mpix_per_s": point.get("avg_forward_mpix_per_s"),
+                "avg_encode_mpix_per_s": point.get("avg_encode_mpix_per_s"),
+                "avg_decode_mpix_per_s": point.get("avg_decode_mpix_per_s"),
+                "avg_codec_total_mpix_per_s": point.get("avg_codec_total_mpix_per_s"),
+            })
+            points_for_summary.append(point)
+
+        summary_rows.append({
+            "variant": variant,
+            "label": VARIANT_LABELS.get(variant, variant),
+            "freeze_mode": points_for_summary[0].get("freeze_mode"),
+            "params_millions": (
+                points_for_summary[0].get("total_params") / 1_000_000.0
+                if points_for_summary[0].get("total_params") is not None
+                else None
+            ),
+            "timed_points": len(points_for_summary),
+            "mean_coded_bpp": float(np.mean([p.get("avg_coded_bpp") for p in points_for_summary])),
+            "mean_psnr": float(np.mean([p.get("avg_psnr") for p in points_for_summary])),
+            "mean_forward_ms": float(np.mean([p.get("avg_forward_ms") for p in points_for_summary])),
+            "mean_encode_ms": float(np.mean([p.get("avg_encode_ms") for p in points_for_summary])),
+            "mean_decode_ms": float(np.mean([p.get("avg_decode_ms") for p in points_for_summary])),
+            "mean_codec_total_ms": float(np.mean([p.get("avg_codec_total_ms") for p in points_for_summary])),
+            "mean_forward_mpix_per_s": float(np.mean([p.get("avg_forward_mpix_per_s") for p in points_for_summary])),
+            "mean_encode_mpix_per_s": float(np.mean([p.get("avg_encode_mpix_per_s") for p in points_for_summary])),
+            "mean_decode_mpix_per_s": float(np.mean([p.get("avg_decode_mpix_per_s") for p in points_for_summary])),
+            "mean_codec_total_mpix_per_s": float(np.mean([p.get("avg_codec_total_mpix_per_s") for p in points_for_summary])),
+        })
+
+    point_csv = output_dir / "runtime_tradeoff_table.csv"
+    point_md = output_dir / "runtime_tradeoff_table.md"
+    summary_csv = output_dir / "runtime_tradeoff_summary.csv"
+    summary_md = output_dir / "runtime_tradeoff_summary.md"
+
+    with open(point_csv, "w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(point_rows[0].keys()) if point_rows else [])
+        if point_rows:
+            writer.writeheader()
+            writer.writerows(point_rows)
+
+    with open(point_md, "w", encoding="utf-8") as handle:
+        handle.write("| Variant | Freeze | Q | Params (M) | Coded bpp | PSNR | Forward ms | Encode ms | Decode ms | Codec total ms |\n")
+        handle.write("|---|---|---:|---:|---:|---:|---:|---:|---:|---:|\n")
+        for row in point_rows:
+            handle.write(
+                f"| {row['label']} | {row['freeze_mode']} | {row['quality']} | "
+                f"{row['params_millions']:.3f} | {row['avg_coded_bpp']:.4f} | {row['avg_psnr']:.3f} | "
+                f"{row['avg_forward_ms']:.2f} | {row['avg_encode_ms']:.2f} | {row['avg_decode_ms']:.2f} | "
+                f"{row['avg_codec_total_ms']:.2f} |\n"
+            )
+
+    with open(summary_csv, "w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(summary_rows[0].keys()) if summary_rows else [])
+        if summary_rows:
+            writer.writeheader()
+            writer.writerows(summary_rows)
+
+    with open(summary_md, "w", encoding="utf-8") as handle:
+        handle.write("| Variant | Freeze | Params (M) | Mean coded bpp | Mean PSNR | Mean forward ms | Mean encode ms | Mean decode ms | Mean codec total ms |\n")
+        handle.write("|---|---|---:|---:|---:|---:|---:|---:|---:|\n")
+        for row in summary_rows:
+            handle.write(
+                f"| {row['label']} | {row['freeze_mode']} | {row['params_millions']:.3f} | "
+                f"{row['mean_coded_bpp']:.4f} | {row['mean_psnr']:.3f} | {row['mean_forward_ms']:.2f} | "
+                f"{row['mean_encode_ms']:.2f} | {row['mean_decode_ms']:.2f} | {row['mean_codec_total_ms']:.2f} |\n"
+            )
+
+    print(f"Saved: {point_csv}")
+    print(f"Saved: {point_md}")
+    print(f"Saved: {summary_csv}")
+    print(f"Saved: {summary_md}")
+
+
+def timed_curve_data(data):
+    curve_data = select_curve_data(data, metric="psnr")
+    timed = {}
+    for variant, points in curve_data.items():
+        filtered = [
+            point for point in points
+            if point.get("avg_codec_total_ms") is not None
+            and point.get("avg_forward_ms") is not None
+            and point.get("avg_encode_ms") is not None
+            and point.get("avg_decode_ms") is not None
+        ]
+        if filtered:
+            timed[variant] = filtered
+    return timed
+
+
+def plot_runtime_tradeoff(data, output_dir, variants=None, suffix=""):
+    curve_data = timed_curve_data(data)
+    if variants is not None:
+        curve_data = subset_curve_data(curve_data, variants)
+
+    if not curve_data:
+        return
+
+    fig, ax = plt.subplots(1, 1, figsize=(10.5, 7.0))
+    style_axes(ax)
+
+    for variant in ordered_variants(curve_data):
+        points = curve_data[variant]
+        runtimes = [point["avg_codec_total_ms"] for point in points]
+        psnrs = [point["avg_psnr"] for point in points]
+        bpps = [plot_bpp(point) for point in points]
+        scatter = ax.scatter(
+            runtimes,
+            psnrs,
+            s=[90 + 220 * bpp for bpp in bpps],
+            marker=VARIANT_MARKERS.get(variant, "o"),
+            color=VARIANT_COLORS.get(variant, "#4C78A8"),
+            edgecolors="white",
+            linewidths=0.9,
+            alpha=0.95,
+            label=VARIANT_LABELS.get(variant, variant),
+        )
+        ax.plot(
+            runtimes,
+            psnrs,
+            color=VARIANT_COLORS.get(variant, "#4C78A8"),
+            linestyle=VARIANT_LINESTYLES.get(variant, "-"),
+            linewidth=1.8,
+            alpha=0.85,
+        )
+        for runtime, psnr, point in zip(runtimes, psnrs, points):
+            ax.annotate(
+                f"Q{point['quality']}",
+                (runtime, psnr),
+                xytext=(5, 5),
+                textcoords="offset points",
+                fontsize=8.5,
+                color="#333333",
+            )
+
+    ax.set_xlabel("Codec total time per image (ms)", fontsize=13, color="#222222")
+    ax.set_ylabel("PSNR (dB)", fontsize=13, color="#222222")
+    ax.xaxis.set_major_locator(MaxNLocator(nbins=6))
+    ax.yaxis.set_major_locator(MaxNLocator(nbins=6))
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.12), ncol=3, frameon=False, fontsize=10)
+    ax.margins(x=0.1, y=0.08)
+    fig.subplots_adjust(top=0.82, right=0.94)
+
+    output_dir = Path(output_dir)
+    stem = f"runtime_tradeoff_psnr{suffix}"
+    fig.savefig(output_dir / f"{stem}.pdf", dpi=150, bbox_inches="tight")
+    fig.savefig(output_dir / f"{stem}.png", dpi=150, bbox_inches="tight")
+    fig.savefig(output_dir / f"{stem}.svg", bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved: {output_dir / f'{stem}.pdf'}")
+
+
+def plot_runtime_param_scatter(data, output_dir, variants=None, suffix=""):
+    curve_data = timed_curve_data(data)
+    if variants is not None:
+        curve_data = subset_curve_data(curve_data, variants)
+
+    if not curve_data:
+        return
+
+    records = []
+    for variant in ordered_variants(curve_data):
+        points = curve_data[variant]
+        mean_params = points[0].get("total_params")
+        if mean_params is None:
+            continue
+        records.append({
+            "variant": variant,
+            "label": VARIANT_LABELS.get(variant, variant),
+            "x": mean_params / 1_000_000.0,
+            "y": float(np.mean([point["avg_codec_total_ms"] for point in points])),
+            "mean_psnr": float(np.mean([point["avg_psnr"] for point in points])),
+            "mean_bpp": float(np.mean([plot_bpp(point) for point in points])),
+        })
+
+    records = apply_horizontal_jitter(records)
+    y_limits = broken_runtime_limits([record["y"] for record in records])
+
+    if y_limits is None:
+        fig, axes = plt.subplots(1, 1, figsize=(10.5, 7.0))
+        axes = [axes]
+    else:
+        fig, axes = plt.subplots(
+            2,
+            1,
+            figsize=(10.5, 7.8),
+            sharex=True,
+            gridspec_kw={"height_ratios": [1.1, 2.4], "hspace": 0.08},
+        )
+
+    for ax in axes:
+        style_axes(ax)
+
+    legend_handles = []
+    legend_labels = []
+
+    for record in records:
+        target_axes = axes if y_limits is None else ([axes[0]] if record["y"] >= y_limits[1][0] else [axes[1]])
+        for ax in target_axes:
+            handle = ax.scatter(
+                [record["x_plot"]],
+                [record["y"]],
+                s=max(120, 140 + 260 * record["mean_bpp"]),
+                marker=VARIANT_MARKERS.get(record["variant"], "o"),
+                color=VARIANT_COLORS.get(record["variant"], "#4C78A8"),
+                edgecolors="white",
+                linewidths=1.0,
+                alpha=0.97,
+                label=record["label"],
+                zorder=3,
+            )
+            if record["label"] not in legend_labels:
+                legend_handles.append(handle)
+                legend_labels.append(record["label"])
+
+    if y_limits is None:
+        ax = axes[0]
+        ax.set_ylabel("Mean codec total time (ms/image)", fontsize=13, color="#222222")
+        ax.yaxis.set_major_locator(MaxNLocator(nbins=6))
+        ax.margins(x=0.14, y=0.16)
+    else:
+        top_ax, bottom_ax = axes
+        top_ax.set_ylim(*y_limits[1])
+        bottom_ax.set_ylim(*y_limits[0])
+        top_ax.spines["bottom"].set_visible(False)
+        bottom_ax.spines["top"].set_visible(False)
+        top_ax.tick_params(labeltop=False, bottom=False)
+        bottom_ax.tick_params(top=False)
+        top_ax.yaxis.set_major_locator(MaxNLocator(nbins=4))
+        bottom_ax.yaxis.set_major_locator(MaxNLocator(nbins=6))
+        bottom_ax.margins(x=0.14)
+        top_ax.margins(x=0.14)
+        bottom_ax.set_ylabel("Mean codec total time (ms/image)", fontsize=13, color="#222222")
+
+        d = 0.012
+        kwargs = dict(transform=top_ax.transAxes, color="#555555", clip_on=False, linewidth=1.0)
+        top_ax.plot((-d, +d), (-d, +d), **kwargs)
+        top_ax.plot((1 - d, 1 + d), (-d, +d), **kwargs)
+        kwargs.update(transform=bottom_ax.transAxes)
+        bottom_ax.plot((-d, +d), (1 - d, 1 + d), **kwargs)
+        bottom_ax.plot((1 - d, 1 + d), (1 - d, 1 + d), **kwargs)
+
+    axes[-1].set_xlabel("Parameters (millions)", fontsize=13, color="#222222")
+    axes[-1].xaxis.set_major_locator(MaxNLocator(nbins=6))
+    fig.legend(
+        legend_handles,
+        legend_labels,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 0.99),
+        ncol=max(1, len(legend_labels)),
+        frameon=False,
+        fontsize=10,
+    )
+    fig.subplots_adjust(top=0.84, right=0.97)
+
+    output_dir = Path(output_dir)
+    stem = f"runtime_tradeoff_params{suffix}"
+    fig.savefig(output_dir / f"{stem}.pdf", dpi=150, bbox_inches="tight")
+    fig.savefig(output_dir / f"{stem}.png", dpi=150, bbox_inches="tight")
+    fig.savefig(output_dir / f"{stem}.svg", bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved: {output_dir / f'{stem}.pdf'}")
+
+
 def bd_reference_variant(data):
     if "A_ft" in data:
         return "A_ft"
@@ -312,8 +689,14 @@ def bd_reference_variant(data):
     return None
 
 
-def plot_rd_curves(data, output_dir, metric="psnr"):
+def plot_rd_curves(data, output_dir, metric="psnr", variants=None, suffix=""):
     curve_data = select_curve_data(data, metric)
+    if variants is not None:
+        curve_data = subset_curve_data(curve_data, variants)
+
+    if not curve_data:
+        return {}, None
+
     fig, ax = plt.subplots(1, 1, figsize=(10.5, 7.0))
     style_axes(ax)
 
@@ -349,17 +732,24 @@ def plot_rd_curves(data, output_dir, metric="psnr"):
     ax.set_ylabel("PSNR (dB)" if metric == "psnr" else "MS-SSIM (dB)", fontsize=13, color="#222222")
     ax.xaxis.set_major_locator(MaxNLocator(nbins=6))
     ax.yaxis.set_major_locator(MaxNLocator(nbins=6))
-    ax.margins(x=0.08, y=0.08)
+    if variants is None:
+        ax.margins(x=0.08, y=0.08)
+    else:
+        xlim, ylim = axis_bounds(curve_data, metric)
+        if xlim and ylim:
+            ax.set_xlim(*xlim)
+            ax.set_ylim(*ylim)
     ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.12), ncol=3, frameon=False, fontsize=10)
     fig.subplots_adjust(top=0.82, right=0.92)
 
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    fig.savefig(output_dir / f"rd_curve_{metric}.pdf", dpi=150, bbox_inches="tight")
-    fig.savefig(output_dir / f"rd_curve_{metric}.png", dpi=150, bbox_inches="tight")
-    fig.savefig(output_dir / f"rd_curve_{metric}.svg", bbox_inches="tight")
+    stem = f"rd_curve_{metric}{suffix}"
+    fig.savefig(output_dir / f"{stem}.pdf", dpi=150, bbox_inches="tight")
+    fig.savefig(output_dir / f"{stem}.png", dpi=150, bbox_inches="tight")
+    fig.savefig(output_dir / f"{stem}.svg", bbox_inches="tight")
     plt.close(fig)
-    print(f"Saved: {output_dir / f'rd_curve_{metric}.pdf'}")
+    print(f"Saved: {output_dir / f'{stem}.pdf'}")
     return bd_rates, reference_variant
 
 
@@ -440,8 +830,15 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
     write_summary_table(data, output_dir)
     write_parameter_table(data, output_dir)
+    write_runtime_tradeoff_tables(data, output_dir)
+    plot_runtime_tradeoff(data, output_dir)
+    plot_runtime_tradeoff(data, output_dir, variants=PROJECT_VARIANTS, suffix="_project_zoom")
+    plot_runtime_param_scatter(data, output_dir)
+    plot_runtime_param_scatter(data, output_dir, variants=PROJECT_VARIANTS, suffix="_project_zoom")
     bd_psnr, reference_variant = plot_rd_curves(data, output_dir, metric="psnr")
     bd_msssim, _ = plot_rd_curves(data, output_dir, metric="msssim")
+    plot_rd_curves(data, output_dir, metric="psnr", variants=PROJECT_VARIANTS, suffix="_project_zoom")
+    plot_rd_curves(data, output_dir, metric="msssim", variants=PROJECT_VARIANTS, suffix="_project_zoom")
     plot_bd_rate_bars(bd_psnr, output_dir, metric="psnr", reference_variant=reference_variant)
     plot_bd_rate_bars(bd_msssim, output_dir, metric="msssim", reference_variant=reference_variant)
     write_bd_rate_summary(bd_psnr, bd_msssim, output_dir, reference_variant)
