@@ -831,8 +831,6 @@ def main():
     write_summary_table(data, output_dir)
     write_parameter_table(data, output_dir)
     write_runtime_tradeoff_tables(data, output_dir)
-    plot_runtime_tradeoff(data, output_dir)
-    plot_runtime_tradeoff(data, output_dir, variants=PROJECT_VARIANTS, suffix="_project_zoom")
     plot_runtime_param_scatter(data, output_dir)
     plot_runtime_param_scatter(data, output_dir, variants=PROJECT_VARIANTS, suffix="_project_zoom")
     bd_psnr, reference_variant = plot_rd_curves(data, output_dir, metric="psnr")
