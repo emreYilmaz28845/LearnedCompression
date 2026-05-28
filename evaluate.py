@@ -7,6 +7,7 @@ Computes per-image PSNR, MS-SSIM, estimated bpp, and optionally true coded bpp.
 from __future__ import annotations
 
 import argparse
+import copy
 import csv
 import json
 import math
@@ -14,7 +15,6 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from pytorch_msssim import ms_ssim
 from torch.utils.data import DataLoader
 from torchvision.transforms import functional as TF
 
@@ -25,6 +25,7 @@ from models import (
     load_pretrained_baseline,
     load_pretrained_zoo_model,
 )
+from utils import compute_ms_ssim, compute_psnr
 from utils.config import DEFAULT_CONFIG_PATH, get_config_value, load_config
 from utils.datasets import KodakDataset
 
@@ -155,6 +156,44 @@ def compute_coded_reconstruction(model, x, num_pixels):
     return decoded["x_hat"].clamp(0, 1), coded_bits / num_pixels
 
 
+def build_coding_model(model):
+    """Create a CPU copy for reliable entropy coding during evaluation."""
+    coding_model = copy.deepcopy(model).cpu()
+    coding_model.eval()
+    coding_model.update()
+    return coding_model
+
+
+def assert_finite_tensor(name, tensor):
+    if not torch.isfinite(tensor).all():
+        raise ValueError(f"{name} contains non-finite values")
+
+
+def compute_metrics(x_cropped, x_hat_cropped):
+    """Compute metrics on CPU for numerical stability."""
+    x_metrics = x_cropped.detach().cpu()
+    x_hat_metrics = x_hat_cropped.detach().cpu()
+    assert_finite_tensor("reference image", x_metrics)
+    assert_finite_tensor("reconstruction", x_hat_metrics)
+
+    mse = torch.mean((x_metrics - x_hat_metrics) ** 2).item()
+    psnr = compute_psnr(x_metrics, x_hat_metrics)
+    msssim_val = compute_ms_ssim(x_metrics, x_hat_metrics, data_range=1.0)
+
+    if not math.isfinite(mse) or not math.isfinite(psnr) or not math.isfinite(msssim_val):
+        raise ValueError(
+            f"Non-finite metric detected (mse={mse}, psnr={psnr}, ms_ssim={msssim_val})"
+        )
+
+    if msssim_val >= 1.0:
+        msssim_db = 100.0
+    else:
+        clipped = min(max(msssim_val, 0.0), 1.0 - 1e-12)
+        msssim_db = -10 * math.log10(1 - clipped)
+
+    return mse, psnr, msssim_val, msssim_db
+
+
 def get_image_stem(dataset, index):
     if hasattr(dataset, "images"):
         return Path(dataset.images[index]).stem
@@ -182,6 +221,7 @@ def evaluate_model(
     model.update()
     results = []
     reconstruction_indices = set(reconstruction_indices or [])
+    coding_model = build_coding_model(model) if compute_coded_bpp else None
 
     with torch.no_grad():
         for i, (x, (orig_h, orig_w)) in enumerate(data_loader):
@@ -195,19 +235,12 @@ def evaluate_model(
             x_hat = out["x_hat"].clamp(0, 1)
             coded_bpp = None
             if compute_coded_bpp:
-                x_hat, coded_bpp = compute_coded_reconstruction(model, x, num_pixels)
+                x_hat, coded_bpp = compute_coded_reconstruction(coding_model, x.cpu(), num_pixels)
 
             x_cropped = x[:, :, :h, :w]
             x_hat_cropped = x_hat[:, :, :h, :w]
 
-            mse = torch.mean((x_cropped - x_hat_cropped) ** 2).item()
-            psnr = -10 * math.log10(mse) if mse > 0 else 100.0
-            msssim_val = ms_ssim(
-                x_hat_cropped,
-                x_cropped,
-                data_range=1.0,
-                size_average=True,
-            ).item()
+            mse, psnr, msssim_val, msssim_db = compute_metrics(x_cropped, x_hat_cropped)
 
             image_stem = get_image_stem(data_loader.dataset, i)
             results.append({
@@ -218,7 +251,7 @@ def evaluate_model(
                 "bpp": estimated_bpp,
                 "psnr": psnr,
                 "ms_ssim": msssim_val,
-                "ms_ssim_db": -10 * math.log10(1 - msssim_val) if msssim_val < 1 else 100.0,
+                "ms_ssim_db": msssim_db,
                 "mse": mse,
             })
 

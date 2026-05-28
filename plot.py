@@ -8,6 +8,7 @@ import argparse
 import csv
 import glob
 import json
+import math
 from pathlib import Path
 
 import matplotlib
@@ -140,6 +141,51 @@ def load_summaries(results_dir):
     return data
 
 
+def is_finite_point(summary, metric="psnr"):
+    bpp = plot_bpp(summary)
+    value = summary.get("avg_psnr") if metric == "psnr" else summary.get("avg_ms_ssim_db")
+    return (
+        bpp is not None
+        and value is not None
+        and math.isfinite(float(bpp))
+        and math.isfinite(float(value))
+    )
+
+
+def curve_priority(freeze_mode):
+    priorities = {
+        "pretrained_reference": 0,
+        "none": 1,
+        "": 2,
+        None: 2,
+        "frozen_hyperprior": 3,
+        "attention_only": 4,
+    }
+    return priorities.get(freeze_mode, 5)
+
+
+def select_curve_data(data, metric):
+    curve_data = {}
+    for variant, summaries in data.items():
+        groups = {}
+        for summary in summaries:
+            if not is_finite_point(summary, metric):
+                continue
+            freeze_mode = summary.get("freeze_mode")
+            groups.setdefault(freeze_mode, []).append(summary)
+
+        if not groups:
+            continue
+
+        selected_freeze, selected_points = sorted(
+            groups.items(),
+            key=lambda item: (-len(item[1]), curve_priority(item[0]), str(item[0])),
+        )[0]
+        selected_points = sorted(selected_points, key=plot_bpp)
+        curve_data[variant] = selected_points
+    return curve_data
+
+
 def style_axes(ax):
     ax.set_facecolor("#FAFAFA")
     ax.spines["top"].set_visible(False)
@@ -267,13 +313,14 @@ def bd_reference_variant(data):
 
 
 def plot_rd_curves(data, output_dir, metric="psnr"):
+    curve_data = select_curve_data(data, metric)
     fig, ax = plt.subplots(1, 1, figsize=(10.5, 7.0))
     style_axes(ax)
 
-    reference_variant = bd_reference_variant(data)
+    reference_variant = bd_reference_variant(curve_data)
     bd_rates = {}
-    for variant in ordered_variants(data):
-        points = data[variant]
+    for variant in ordered_variants(curve_data):
+        points = curve_data[variant]
         bpps = [plot_bpp(point) for point in points]
         vals = [point["avg_psnr"] for point in points] if metric == "psnr" else [point["avg_ms_ssim_db"] for point in points]
         ax.plot(
@@ -289,12 +336,12 @@ def plot_rd_curves(data, output_dir, metric="psnr"):
             markeredgewidth=0.9,
         )
 
-        if variant != reference_variant and reference_variant and len(points) >= 4 and len(data[reference_variant]) >= 4:
-            ref_bpps = [plot_bpp(point) for point in data[reference_variant]]
+        if variant != reference_variant and reference_variant and len(points) >= 4 and len(curve_data[reference_variant]) >= 4:
+            ref_bpps = [plot_bpp(point) for point in curve_data[reference_variant]]
             ref_vals = (
-                [point["avg_psnr"] for point in data[reference_variant]]
+                [point["avg_psnr"] for point in curve_data[reference_variant]]
                 if metric == "psnr"
-                else [point["avg_ms_ssim_db"] for point in data[reference_variant]]
+                else [point["avg_ms_ssim_db"] for point in curve_data[reference_variant]]
             )
             bd_rates[variant] = compute_bd_rate(ref_bpps, ref_vals, bpps, vals)
 
