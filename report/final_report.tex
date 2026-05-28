@@ -15,6 +15,7 @@
 \usepackage{enumitem}
 \usepackage{xcolor}
 \usepackage{hyperref}
+\usepackage{placeins}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta, positioning, fit}
 
@@ -93,6 +94,13 @@ The proposal planned to train on DIV2K and evaluate on Kodak. The final implemen
 
 The preprocessing is simple and consistent with patch-based compression training. For training, each image is converted to RGB, reflect-padded if it is smaller than the patch size, randomly cropped to \(256\times256\), and randomly flipped horizontally. Validation uses the same patch size but replaces random cropping with a center crop. No per-channel normalization is applied beyond converting the image to a \([0,1]\) tensor. Kodak evaluation uses full-resolution PNG images; each image is reflect-padded to a multiple of 64 for the convolutional transforms, and metrics are computed only on the original unpadded region.
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{preprocessing_patch_example.pdf}
+\caption{Patch-based preprocessing used during training. The final pipeline samples \(256\times256\) crops from CLIC images and applies horizontal flips; validation keeps the same patch size but uses deterministic center crops.}
+\label{fig:preprocessing}
+\end{figure}
+
 This pipeline is reasonable for a course project, but it has two limitations. First, there is no separate held-out CLIC test set in the final setup; Kodak is the only external benchmark. Second, because the model is trained with MSE loss but also reported with MS-SSIM, the MS-SSIM numbers should be interpreted as secondary evaluation rather than a directly optimized target.
 
 \section{Methods}
@@ -117,58 +125,151 @@ where \(\mathrm{GAP}\) is global average pooling and \(s \in [0,1]^C\) rescales 
 
 \begin{figure}[t]
 \centering
-\resizebox{\linewidth}{!}{%
 \begin{tikzpicture}[
-  node distance=0.9cm and 0.45cm,
-  box/.style={draw, rounded corners, align=center, minimum height=0.95cm, minimum width=2.1cm, fill=blue!5},
-  latent/.style={draw, rounded corners, align=center, minimum height=0.8cm, minimum width=1.55cm, fill=green!6},
-  note/.style={draw, rounded corners, align=left, fill=orange!10, inner sep=5pt},
-  arr/.style={-{Latex[length=2.2mm]}, thick},
-  font=\small
+  font=\small,
+  box/.style={draw, rounded corners=3pt, align=center, minimum width=1.75cm, minimum height=0.85cm, fill=blue!6},
+  latent/.style={draw, rounded corners=3pt, align=center, minimum width=1.55cm, minimum height=0.75cm, fill=green!8},
+  arr/.style={-{Latex[length=2.4mm]}, thick},
+  node distance=1.0cm and 0.8cm,
 ]
-\node[box] (x) {\(x\)};
-\node[box, right=of x, minimum width=2.9cm] (ga) {analysis transform \(g_a\)\\Conv-GDN-Conv-\textcolor{blue!70!black}{SE?}-GDN-Conv-GDN-Conv};
-\node[latent, right=of ga] (y) {\(y\)};
-\node[box, above=of y, minimum width=2.2cm] (ha) {hyper-analysis\\\(h_a\)};
-\node[latent, right=of ha] (z) {\(z\)};
-\node[box, right=of z, minimum width=2.4cm] (eb) {entropy\\bottleneck};
-\node[latent, below=of eb] (zhat) {\(\hat{z}\)};
-\node[box, left=of zhat, minimum width=2.2cm] (hs) {hyper-synthesis\\\(h_s\)};
-\node[latent, left=of hs] (sigma) {\(\sigma\)};
-\node[box, below=of y, minimum width=2.5cm] (gc) {Gaussian conditional};
-\node[latent, right=of gc] (yhat) {\(\hat{y}\)};
-\node[box, right=of yhat, minimum width=3.0cm] (gs) {synthesis transform \(g_s\)\\Deconv-IGDN-Deconv-\textcolor{blue!70!black}{SE?}-IGDN-Deconv-IGDN-Deconv};
-\node[box, right=of gs] (xhat) {\(\hat{x}\)};
+\node[box] (x) {Input};
+\node[box, right=of x] (enc) {Encoder};
+\node[latent, right=of enc] (y) {Latent \(y\)};
+\node[box, right=of y] (quant) {Quantize};
+\node[box, right=of quant] (dec) {Decoder};
+\node[box, right=of dec] (xhat) {Output};
+\node[box, below=1.2cm of y] (hyper) {Hyperprior};
+\node[box, right=of hyper] (scale) {Scales};
 
-\draw[arr] (x) -- (ga);
-\draw[arr] (ga) -- (y);
-\draw[arr] (y) -- (gc);
+\draw[arr] (x) -- (enc);
+\draw[arr] (enc) -- (y);
+\draw[arr] (y) -- (quant);
+\draw[arr] (quant) -- (dec);
+\draw[arr] (dec) -- (xhat);
+\draw[arr] (y) -- (hyper);
+\draw[arr] (hyper) -- (scale);
+\draw[arr] (scale) -- (quant);
+\end{tikzpicture}
+\caption{High-level compression system. The transform path produces the main latents \(y\), while a separate hyperprior path predicts the scale information used by the entropy model.}
+\label{fig:system-overview}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+  font=\small,
+  box/.style={draw, rounded corners=3pt, align=center, minimum width=2.15cm, minimum height=0.8cm, fill=blue!6},
+  se/.style={draw, rounded corners=3pt, align=center, minimum width=1.4cm, minimum height=0.75cm, fill=orange!18},
+  arr/.style={-{Latex[length=2.4mm]}, thick},
+  node distance=0.65cm,
+]
+\node[box] (in) {Input};
+\node[box, below=of in] (c1) {Conv + GDN};
+\node[box, below=of c1] (c2) {Conv};
+\node[se, below=of c2] (se) {SE};
+\node[box, below=of se] (c3) {Conv + GDN};
+\node[box, below=of c3] (out) {Latent \(y\)};
+\draw[arr] (in) -- (c1);
+\draw[arr] (c1) -- (c2);
+\draw[arr] (c2) -- (se);
+\draw[arr] (se) -- (c3);
+\draw[arr] (c3) -- (out);
+\end{tikzpicture}
+\caption{Encoder-side view. In the attention variants, one SE block is inserted between the middle encoder stages.}
+\label{fig:encoder-overview}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+  font=\small,
+  box/.style={draw, rounded corners=3pt, align=center, minimum width=1.9cm, minimum height=0.8cm, fill=green!8},
+  arr/.style={-{Latex[length=2.4mm]}, thick},
+  node distance=0.9cm and 0.9cm,
+]
+\node[box] (y) {Latent \(y\)};
+\node[box, right=of y] (ha) {Hyper-enc.};
+\node[box, right=of ha] (z) {Latent \(z\)};
+\node[box, below=of z] (eb) {Bottleneck};
+\node[box, left=of eb] (hs) {Hyper-dec.};
+\node[box, left=of hs] (scale) {Scales};
+
 \draw[arr] (y) -- (ha);
 \draw[arr] (ha) -- (z);
 \draw[arr] (z) -- (eb);
-\draw[arr] (eb) -- (zhat);
-\draw[arr] (zhat) -- (hs);
-\draw[arr] (hs) -- (sigma);
-\draw[arr] (sigma) -- (gc);
-\draw[arr] (gc) -- (yhat);
-\draw[arr] (yhat) -- (gs);
-\draw[arr] (gs) -- (xhat);
-
-\node[note, below=1.2cm of gc, text width=0.92\linewidth] {
-\textbf{Variant definitions.}
-\(A\): official pretrained hyperprior.
-\(A_{\mathrm{ft}}\): fine-tuned vanilla hyperprior.
-\(B\): encoder SE only.
-\(C\): encoder+decoder SE.
-The hyperprior path is unchanged in all project variants.
-};
+\draw[arr] (eb) -- (hs);
+\draw[arr] (hs) -- (scale);
 \end{tikzpicture}
-}
-\caption{Implemented architecture. The proposal's core idea is preserved: attention is added only to the transform network, while the entropy model remains the standard scale hyperprior.}
-\label{fig:architecture}
+\caption{Entropy side-information path. This branch is unchanged across \(A\), \(A_{\mathrm{ft}}\), \(B\), and \(C\).}
+\label{fig:hyperprior-overview}
 \end{figure}
 
-Figure~\ref{fig:architecture} shows the final architecture. The change is intentionally lightweight: at quality level 3, variant \(B\) adds only 2,184 parameters and variant \(C\) adds 4,368 parameters over the 5.08M-parameter baseline.
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+  font=\small,
+  box/.style={draw, rounded corners=3pt, align=center, minimum width=2.15cm, minimum height=0.8cm, fill=blue!6},
+  se/.style={draw, rounded corners=3pt, align=center, minimum width=1.4cm, minimum height=0.75cm, fill=orange!18},
+  arr/.style={-{Latex[length=2.4mm]}, thick},
+  node distance=0.65cm,
+]
+\node[box] (in) {Latent \(\hat{y}\)};
+\node[box, below=of in] (d1) {Deconv + IGDN};
+\node[box, below=of d1] (d2) {Deconv};
+\node[se, below=of d2] (se) {SE};
+\node[box, below=of se] (d3) {Deconv + IGDN};
+\node[box, below=of d3] (out) {RGB};
+\draw[arr] (in) -- (d1);
+\draw[arr] (d1) -- (d2);
+\draw[arr] (d2) -- (se);
+\draw[arr] (se) -- (d3);
+\draw[arr] (d3) -- (out);
+\end{tikzpicture}
+\caption{Decoder-side view. Only variant \(C\) adds the highlighted decoder SE block.}
+\label{fig:decoder-overview}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+  font=\small,
+  row/.style={draw, rounded corners=3pt, minimum width=1.55cm, minimum height=0.75cm, align=center, fill=blue!6},
+  se/.style={draw, circle, minimum size=0.42cm, fill=orange!18, inner sep=0pt},
+  arr/.style={-{Latex[length=2.3mm]}, thick},
+  node distance=0.8cm and 0.45cm,
+]
+\node at (0,0.95) {\(A, A_{\mathrm{ft}}\)};
+\node[row] (a1) at (2.2,0.95) {Encoder};
+\node[row] (a2) at (4.2,0.95) {Prior};
+\node[row] (a3) at (6.2,0.95) {Decoder};
+\draw[arr] (a1) -- (a2);
+\draw[arr] (a2) -- (a3);
+
+\node at (0,0) {\(B\)};
+\node[row] (b1) at (2.2,0) {Encoder};
+\node[se] (bs) at (3.15,0) {\scriptsize SE};
+\node[row] (b2) at (4.2,0) {Prior};
+\node[row] (b3) at (6.2,0) {Decoder};
+\draw[arr] (b1) -- (bs);
+\draw[arr] (bs) -- (b2);
+\draw[arr] (b2) -- (b3);
+
+\node at (0,-0.95) {\(C\)};
+\node[row] (c1) at (2.2,-0.95) {Encoder};
+\node[se] (cs1) at (3.15,-0.95) {\scriptsize SE};
+\node[row] (c2) at (4.2,-0.95) {Prior};
+\node[row] (c3) at (6.2,-0.95) {Decoder};
+\node[se] (cs2) at (7.15,-0.95) {\scriptsize SE};
+\draw[arr] (c1) -- (cs1);
+\draw[arr] (cs1) -- (c2);
+\draw[arr] (c2) -- (c3);
+\draw[arr] (c3) -- (cs2);
+\end{tikzpicture}
+\caption{Variant comparison. The project modifies only the transform network: \(B\) adds encoder attention, and \(C\) adds both encoder and decoder attention.}
+\label{fig:variant-comparison}
+\end{figure}
+
+Figures~\ref{fig:system-overview}--\ref{fig:variant-comparison} summarize the implemented model at increasing detail. The modification remains lightweight: at quality level 3, variant \(B\) adds only 2,184 parameters and variant \(C\) adds 4,368 parameters over the 5.08M-parameter baseline.
 
 \begin{table}[t]
 \centering
@@ -210,33 +311,6 @@ For evaluation, the repository computes both estimated bitrate from latent likel
 
 The final evaluation code also measures runtime. A forward pass is timed on the main CUDA model with synchronization before and after \texttt{model(x)}. True encoding and decoding times are measured separately using \texttt{compress()} and \texttt{decompress()} on a CPU copy of the model, because the entropy-coding path in CompressAI is CPU-based in this setup. We therefore report three timing numbers: forward time, encode time, and decode time, along with the codec total (encode+decode). These measurements are useful for testing the ``lightweight'' claim, but they should still be interpreted as machine-specific rather than universal throughput numbers.
 
-\begin{figure}[t]
-\centering
-\begin{tikzpicture}[
-  node distance=0.55cm and 0.35cm,
-  pipe/.style={draw, rounded corners, align=center, minimum height=0.9cm, fill=gray!8},
-  arr/.style={-{Latex[length=2.1mm]}, thick},
-  font=\small
-]
-\node[pipe, minimum width=2.3cm] (clic) {CLIC train/val\\RGB images};
-\node[pipe, right=of clic, minimum width=2.5cm] (patches) {reflect pad\\random / center\\\(256\times256\) crops};
-\node[pipe, right=of patches, minimum width=2.6cm] (train) {\texttt{train.py}\\\(A_{\mathrm{ft}},B,C\)\\freeze modes};
-\node[pipe, right=of train, minimum width=2.3cm] (ckpt) {checkpoints\\TensorBoard logs};
-\node[pipe, below=of ckpt, minimum width=2.6cm] (eval) {\texttt{evaluate.py}\\Kodak full images\\estimated + coded bpp};
-\node[pipe, left=of eval, minimum width=2.8cm] (refs) {reference models\\\(A\), factorized,\\MBT, Cheng};
-\node[pipe, left=of refs, minimum width=2.4cm] (plots) {\texttt{plot.py}\\RD curves\\BD-rate tables};
-
-\draw[arr] (clic) -- (patches);
-\draw[arr] (patches) -- (train);
-\draw[arr] (train) -- (ckpt);
-\draw[arr] (ckpt) -- (eval);
-\draw[arr] (refs) -- (eval);
-\draw[arr] (eval) -- (plots);
-\end{tikzpicture}
-\caption{Final repository pipeline. The report uses the corrected Kodak evaluation path with actual entropy coding and the latest 2026-05-28 result summaries.}
-\label{fig:pipeline}
-\end{figure}
-
 \section{Experiments}
 \subsection{Experimental Setup}
 The main project comparison uses the four Kodak operating points corresponding to qualities 1--4. We report PSNR, MS-SSIM, and coded bits per pixel. The fair comparison point is the fine-tuned vanilla baseline \(A_{\mathrm{ft}}\), not the frozen official pretrained model \(A\), because \(B\) and \(C\) are themselves fine-tuned from pretrained weights.
@@ -245,26 +319,58 @@ The repository also evaluates four stronger pretrained reference models from the
 
 One important repository finding is that older intermediate results should not be used for the final report. The current \texttt{results\_discussion.md} explicitly notes that earlier plots were misleading because they mixed stale summaries and uncoded evaluation. The final report therefore uses the corrected summaries generated on 2026-05-28 by \texttt{evaluate.py} and \texttt{plot.py}.
 
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+  font=\small,
+  box/.style={draw, rounded corners=3pt, align=center, minimum width=2.2cm, minimum height=0.85cm, fill=gray!10},
+  arr/.style={-{Latex[length=2.4mm]}, thick},
+  node distance=0.9cm and 0.8cm,
+]
+\node[box] (train) {CLIC train/val};
+\node[box, right=of train] (fit) {Train};
+\node[box, right=of fit] (ckpt) {Checkpoints};
+\node[box, below=1.2cm of fit] (kodak) {Kodak};
+\node[box, right=of kodak] (eval) {Evaluate};
+\node[box, right=of eval] (plots) {Metrics + plots};
+
+\draw[arr] (train) -- (fit);
+\draw[arr] (fit) -- (ckpt);
+\draw[arr] (kodak) -- (eval);
+\draw[arr] (ckpt) -- (eval);
+\draw[arr] (eval) -- (plots);
+\end{tikzpicture}
+\caption{Training and evaluation workflow used for the final report. Runtime measurements come only from the Kodak evaluation stage.}
+\label{fig:eval-pipeline}
+\end{figure}
+
+\subsection{Implementation Environment}
+All reported evaluation measurements were collected on one workstation with the following hardware:
+\begin{itemize}[leftmargin=1.3em]
+  \item GPU: NVIDIA RTX 5070 Ti
+  \item CPU: AMD Ryzen 9 9900X
+  \item RAM: 32 GB
+\end{itemize}
+
+The runtime analysis in this report is strictly an evaluation/inference study. We report GPU forward-pass time together with CPU \texttt{compress()}/\texttt{decompress()} timing, because that is how the final evaluation code measures the practical inference path. We do not report total training time, epoch timing, or GPU-utilization summaries in the final comparison, even though the repository contains other training diagnostics, because those measurements were not part of the cleaned runtime study.
+
+The runtime comparisons are also limited to implementations that were evaluated locally under the same script: \(A\), \(A_{\mathrm{ft}}\), \(B\), \(C\), and the four CompressAI reference models. The repository does not include paper-reported runtimes on matching hardware, and mixing heterogeneous runtime numbers from different machines would not be methodologically clean. For that reason, all runtime discussion below is a same-machine comparison against local reference implementations rather than a claim about universal deployment speed.
+
 \subsection{Main Rate-Distortion Results}
-Figure~\ref{fig:rd-curves} shows the PSNR rate-distortion curves. The project zoom plot makes the main outcome clear: the curves for \(A_{\mathrm{ft}}\), \(B\), and \(C\) almost overlap. Across all four operating points, the maximum spread among these three models is below \(0.009\) dB and below \(5.8\times 10^{-4}\) bpp. This is too small to support a strong claim that the SE modification improved compression.
+Figures~\ref{fig:rd-psnr} and~\ref{fig:rd-msssim} show the project-level rate-distortion curves. In both PSNR and MS-SSIM, the curves for \(A_{\mathrm{ft}}\), \(B\), and \(C\) almost overlap. Across all four operating points, the maximum spread among these three models is below \(0.009\) dB and below \(5.8\times 10^{-4}\) bpp. This is too small to support a strong claim that the SE modification improved compression.
 
 \begin{figure}[t]
 \centering
-\begin{subfigure}{\linewidth}
-  \centering
-  \includegraphics[width=\linewidth]{rd_curve_psnr_project_zoom.pdf}
-  \caption{Project variants only.}
-\end{subfigure}
+\includegraphics[width=\linewidth]{rd_curve_psnr_project_zoom.pdf}
+\caption{PSNR versus coded bitrate for the main project variants. The three curves are almost indistinguishable on Kodak.}
+\label{fig:rd-psnr}
+\end{figure}
 
-\vspace{0.5em}
-
-\begin{subfigure}{\linewidth}
-  \centering
-  \includegraphics[width=\linewidth]{rd_curve_psnr.pdf}
-  \caption{Project variants plus pretrained reference models.}
-\end{subfigure}
-\caption{PSNR rate-distortion curves on Kodak using coded bpp. The project variants are nearly indistinguishable, while stronger reference priors move the curve more substantially.}
-\label{fig:rd-curves}
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{rd_curve_msssim_project_zoom.pdf}
+\caption{MS-SSIM versus coded bitrate for the same three variants. The ordering is again effectively a tie.}
+\label{fig:rd-msssim}
 \end{figure}
 
 Table~\ref{tab:bd-rate} quantifies this overlap through BD-rate relative to \(A_{\mathrm{ft}}\). The encoder-only SE model \(B\) is slightly worse in PSNR BD-rate and marginally better in MS-SSIM BD-rate; the encoder+decoder model \(C\) is slightly worse in both metrics. In practice, these numbers are so small that they should be interpreted as a tie rather than a meaningful gain. By contrast, MBT 2018 and Cheng 2020 provide clearly better RD behavior, which is consistent with the literature on stronger context and prior modeling.
@@ -291,8 +397,22 @@ Cheng 2020 anchor & 11.833 / 26.599 & -24.87 & -20.61 \\
 
 The presence of \(A\) in Table~\ref{tab:bd-rate} is also informative. It is slightly better than \(A_{\mathrm{ft}}\), which suggests that local fine-tuning on the adopted CLIC setup did not improve the official pretrained model very much. This makes the negative result on SE attention easier to understand: the baseline itself is already strong, and the transform-side modification is small.
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{bd_rate_psnr.pdf}
+\caption{PSNR BD-rate against the fine-tuned vanilla baseline. This view is easier to read than the full multi-model RD curve and makes the large gap between the SE variants and stronger reference priors immediately visible.}
+\label{fig:bd-rate-psnr}
+\end{figure}
+
 \subsection{Lightweight Parameter and Runtime Tradeoff}
-The SE modification was intended to be lightweight, so it is important to check not only BD-rate but also parameter count and runtime. Table~\ref{tab:runtime-tradeoff} reports average Kodak timing across the four operating points for the main project comparison. The key observation is that the parameter overhead is indeed negligible: variant \(B\) adds only \(0.043\%\) parameters over \(A_{\mathrm{ft}}\), and variant \(C\) adds \(0.086\%\). Forward-pass latency is also close, with a \(1.44\%\) increase for \(B\) and a \(2.33\%\) increase for \(C\) relative to \(A_{\mathrm{ft}}\).
+The SE modification was intended to be lightweight, so it is important to check not only BD-rate but also parameter count and evaluation runtime. Table~\ref{tab:runtime-tradeoff} reports average Kodak timing across the four operating points for the main project comparison. The key observation is that the parameter overhead is indeed negligible: variant \(B\) adds only \(0.043\%\) parameters over \(A_{\mathrm{ft}}\), and variant \(C\) adds \(0.086\%\). Forward-pass latency is also close, with a \(1.44\%\) increase for \(B\) and a \(2.33\%\) increase for \(C\) relative to \(A_{\mathrm{ft}}\).
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{runtime_components_project.pdf}
+\caption{Evaluation-time breakdown for the three main project variants. The forward pass is small compared with entropy coding, and the SE variants stay close to the fine-tuned baseline in all three components.}
+\label{fig:runtime-components}
+\end{figure}
 
 The codec-side timings tell a slightly more nuanced story. Variant \(B\) remains essentially tied with \(A_{\mathrm{ft}}\), but it is modestly slower overall (\(+1.57\%\) total encode+decode time). Variant \(C\) is again very close and in this rerun is slightly faster than \(A_{\mathrm{ft}}\) (\(-1.17\%\) total codec time), mainly because its average decode time is a bit lower. Given how small these differences are, the safest claim is not that SE improves speed, but that the SE additions do not impose a meaningful runtime penalty in the tested setup. Combined with the BD-rate table, this supports a clear conclusion: the modification is lightweight in both parameter count and wall-clock behavior, but it still does not buy a measurable compression gain.
 
@@ -311,6 +431,28 @@ Variant & {Params (M)} & {Param \(\Delta\) (\%)} & {Forward ms} & {Encode ms} & 
 \bottomrule
 \end{tabularx}
 \end{table}
+
+In practical terms, the project models all remain in roughly the same evaluation regime: about 5.9--6.1 images per second for full encode+decode on Kodak, corresponding to about 2.33--2.39 megapixels per second. This means the SE additions are genuinely lightweight from an inference perspective even though they do not improve rate-distortion quality.
+
+The broader runtime comparison against local reference implementations is more revealing. Figure~\ref{fig:runtime-all} shows that the factorized prior, the project variants, and MBT mean all lie in a narrow band between 155 and 170 ms per image. By contrast, the autoregressive MBT 2018 and Cheng 2020 models are much slower under the same evaluation script: \(16.1\times\) and \(16.9\times\) slower than \(A_{\mathrm{ft}}\), respectively. This is the main practical tradeoff visible in the repository: stronger priors do improve rate-distortion performance, but they can impose a large evaluation-time penalty.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{runtime_comparison_all.pdf}
+\caption{Mean encode+decode runtime across locally evaluated reference implementations. The log scale is necessary because the autoregressive/context-heavy models are much slower than the scale-hyperprior family.}
+\label{fig:runtime-all}
+\end{figure}
+
+Figure~\ref{fig:runtime-bitrate} summarizes the bitrate-runtime tradeoff using only same-machine measurements. The project variants cluster tightly near the fine-tuned baseline, while MBT 2018 and Cheng 2020 move toward lower average bitrate at much higher runtime cost. Paper-level runtime baselines were not used here because the repository does not provide directly comparable measurements on matching hardware.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{runtime_bitrate_tradeoff_all.pdf}
+\caption{Bitrate-runtime tradeoff using mean Kodak measurements. The local reference implementations provide a clean practical comparison without mixing hardware-dependent runtime numbers from the literature.}
+\label{fig:runtime-bitrate}
+\end{figure}
+
+\FloatBarrier
 
 \subsection{Freeze-Mode Ablations}
 The freeze-mode ablations are scientifically useful because they test whether SE blocks act as effective adapters. Table~\ref{tab:freeze-ablation} reports the mid-rate operating point (\(\lambda=0.0067\), quality 3), where differences are easiest to inspect without extreme low- or high-rate behavior.
@@ -371,6 +513,8 @@ Although the repository is in a reasonably good state for a term project, the ex
 \end{itemize}
 
 Within the current repository, however, the central conclusion is already stable: stronger entropy models matter much more than the tested SE augmentation.
+
+\FloatBarrier
 
 \section{Conclusion}
 This project implemented the proposed idea successfully at the engineering level. We built two SE-augmented variants of the scale hyperprior, transferred pretrained weights carefully, added fair control baselines, trained multiple freeze-mode ablations, and evaluated the models with true coded bitrate on Kodak.
