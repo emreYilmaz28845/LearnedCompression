@@ -44,30 +44,30 @@
 \maketitle
 
 \begin{abstract}
-I investigated whether lightweight channel attention can improve learned image compression when added to a standard scale-hyperprior architecture. Starting from the official CompressAI implementation of Ball\'e et al.'s scale hyperprior, I implemented two Squeeze-and-Excitation (SE) variants: encoder-only attention and encoder+decoder attention. The hyperprior itself was kept unchanged so that the attention modules could be evaluated as a controlled architectural modification. Compared with the original proposal, the final training pipeline uses explicit CLIC train/validation image folders rather than DIV2K, and it adds a fine-tuned vanilla baseline to make the comparison fair.
+I studied whether lightweight channel attention can improve learned image compression when added to a standard scale-hyperprior architecture. Starting from the official CompressAI implementation of Ball\'e et al.'s scale hyperprior, I implemented two Squeeze-and-Excitation (SE) variants: encoder-only attention and encoder+decoder attention. I kept the hyperprior unchanged so that I could test the attention modules as a focused architectural change. Compared with the original proposal, the final training pipeline uses explicit CLIC train/validation image folders rather than DIV2K, and it adds a fine-tuned vanilla baseline to make the comparison fair.
 
-Training was performed on 1,633 CLIC training images with 102 validation images using random 256$\times$256 crops, and evaluation was carried out on the 24-image Kodak benchmark. I report PSNR, MS-SSIM, estimated bitrate, and true coded bitrate obtained from actual \texttt{compress()}/\texttt{decompress()} calls. This distinction became important during project cleanup: earlier intermediate plots based only on estimated bitrate overstated the benefit of the SE variants, while the corrected coded-bitrate evaluation shows that the curves are nearly identical.
+Training was performed on 1,633 CLIC training images with 102 validation images using random 256$\times$256 crops, and evaluation was carried out on the 24-image Kodak benchmark. I report PSNR, MS-SSIM, estimated bitrate, and true coded bitrate obtained from actual \texttt{compress()}/\texttt{decompress()} calls. This turned out to be important during project cleanup: earlier plots based only on estimated bitrate made the SE variants look better than they really were, while the corrected coded-bitrate evaluation shows that the curves are nearly identical.
 
-The final results do not support a meaningful rate-distortion gain from the tested SE modification. Relative to the fine-tuned vanilla baseline, encoder-only SE yields a PSNR BD-rate of \(+0.08\%\) and encoder+decoder SE yields \(+0.17\%\); the MS-SSIM differences are similarly negligible. Across the four operating points, the project variants stay within \(0.009\) dB and \(5.8\times 10^{-4}\) bpp of each other. In contrast, stronger entropy models such as MBT 2018 and Cheng 2020 provide much larger gains. Within the scope of this course project, the main conclusion is that small transform-side SE attention is easy to integrate, but it does not materially improve compression performance in this setting.
+The final results do not show a meaningful rate-distortion gain from the tested SE modification. Relative to the fine-tuned vanilla baseline, encoder-only SE yields a PSNR BD-rate of \(+0.08\%\) and encoder+decoder SE yields \(+0.17\%\); the MS-SSIM differences are also very small. Across the four operating points, the project variants stay within \(0.009\) dB and \(5.8\times 10^{-4}\) bpp of each other. In contrast, stronger entropy models such as MBT 2018 and Cheng 2020 provide much larger gains. So, within the scope of this course project, the main conclusion is that small transform-side SE attention is easy to integrate, but it does not noticeably improve compression performance in this setting.
 \end{abstract}
 
 \section{Introduction}
-Learned image compression replaces fixed transforms and hand-designed probability models with neural networks trained directly for rate-distortion optimization. This is attractive because the encoder, decoder, and entropy model can be adapted jointly to the data distribution rather than optimized as separate components. In recent years, learned compression models have become competitive enough that small architectural changes can be tested systematically, which makes them a good fit for a graduate course project.
+Learned image compression replaces fixed transforms and hand-designed probability models with neural networks trained directly for rate-distortion optimization. This is useful because the encoder, decoder, and entropy model can be learned together from data instead of being designed separately. In recent years, learned compression models have become strong enough that even small architectural changes can be tested in a meaningful way, which makes them a good fit for a graduate course project.
 
-The starting point of this project was the scale hyperprior model of Ball\'e et al.~\cite{balle2018hyperprior}, implemented through CompressAI~\cite{begaint2020compressai}. The original proposal asked a narrow question: if I keep the hyperprior unchanged and only add lightweight attention inside the transform network, do I obtain better rate-distortion behavior? This is a modest goal, but it is scientifically useful because it isolates the effect of the attention block from larger changes to the entropy model.
+The starting point of this project was the scale hyperprior model of Ball\'e et al.~\cite{balle2018hyperprior}, implemented through CompressAI~\cite{begaint2020compressai}. The original proposal asked a simple question: if I keep the hyperprior unchanged and only add lightweight attention inside the transform network, do I get better rate-distortion behavior? This is a modest goal, but it is still useful because it isolates the effect of the attention block from bigger changes to the entropy model.
 
 The final repository stays close to that plan at the model level. I implemented two attention-augmented variants: one with SE attention in the encoder and one with SE attention in both encoder and decoder. At the same time, the experimental pipeline evolved in two important ways. First, the final training runs use CLIC train/validation splits instead of the initially planned DIV2K training set. Second, I added a fine-tuned vanilla control baseline because comparing SE variants only against the frozen official pretrained model would not be a fair test of the modification.
 
-This report therefore focuses on two questions. First, did the implementation correctly realize the proposed modification? Second, after using the corrected evaluation pipeline and fair baselines, do the SE blocks improve image compression on Kodak? The short answer is that the implementation is technically consistent with the proposal, but the experimental evidence for improvement is weak.
+This report therefore focuses on two questions. First, did the implementation actually match the proposed modification? Second, after using the corrected evaluation pipeline and fair baselines, do the SE blocks improve image compression on Kodak? The short answer is that the implementation matches the proposal reasonably well, but the experimental evidence for improvement is weak.
 
 \section{Related Work}
-Classical codecs such as JPEG and later transform-based codecs rely on carefully engineered transforms, quantization rules, and entropy coders. Their main strength is robustness and efficiency, but the transform and prior model are fixed in advance. Learned compression instead treats compression as a rate-distortion learning problem, allowing the transform and latent prior to adapt to the training distribution.
+Classical codecs such as JPEG and later transform-based codecs rely on carefully designed transforms, quantization rules, and entropy coders. Their main strength is robustness and efficiency, but the transform and prior model are fixed in advance. Learned compression instead treats compression as a rate-distortion learning problem, so the transform and latent prior can adapt to the training data.
 
-An early end-to-end formulation was introduced by Ball\'e et al.~\cite{balle2017e2e}, who showed that nonlinear transforms with a differentiable rate surrogate can be optimized directly. The scale hyperprior model~\cite{balle2018hyperprior} improved this idea by introducing a second latent variable \(z\) that predicts spatially varying scale parameters for the main latent \(y\). This hyperprior remains one of the standard baselines in learned image compression and is the backbone used in this project.
+An early end-to-end formulation was introduced by Ball\'e et al.~\cite{balle2017e2e}, who showed that nonlinear transforms with a differentiable rate term can be optimized directly. The scale hyperprior model~\cite{balle2018hyperprior} improved this idea by introducing a second latent variable \(z\) that predicts spatially varying scale parameters for the main latent \(y\). This hyperprior is still one of the standard baselines in learned image compression and is the backbone used in this project.
 
-Subsequent work showed that stronger entropy models often matter more than modest changes in the analysis/synthesis transforms. Minnen et al.~\cite{minnen2018joint} combined a hierarchical prior with autoregressive context modeling and achieved clear gains over the scale hyperprior. Cheng et al.~\cite{cheng2020anchor} further improved the prior and also used attention-style components together with a discretized Gaussian mixture likelihood. These models are relevant here because they provide a reference for how much improvement can be expected from a stronger prior versus a lightweight transform-side modification.
+Later work showed that stronger entropy models often matter more than small changes in the analysis and synthesis transforms. Minnen et al.~\cite{minnen2018joint} combined a hierarchical prior with autoregressive context modeling and achieved clear gains over the scale hyperprior. Cheng et al.~\cite{cheng2020anchor} further improved the prior and also used attention-style components together with a discretized Gaussian mixture likelihood. These models are relevant here because they help show how much improvement can come from a stronger prior compared with a lightweight transform-side change.
 
-My approach is deliberately simpler than Cheng et al.~\cite{cheng2020anchor}. I do not change the entropy model, the latent dimensionality, or the likelihood family. Instead, I insert Squeeze-and-Excitation channel attention blocks~\cite{hu2018senet} into the transform network while keeping the hyperprior unchanged. This makes the comparison cleaner, but it also limits the expected gain. In hindsight, the final results follow the literature: stronger priors provide larger improvements than the small SE augmentation tested here.
+My approach is deliberately simpler than Cheng et al.~\cite{cheng2020anchor}. I do not change the entropy model, the latent dimensionality, or the likelihood family. Instead, I insert Squeeze-and-Excitation channel attention blocks~\cite{hu2018senet} into the transform network while keeping the hyperprior unchanged. This makes the comparison cleaner, but it also limits how much improvement I should expect. In the end, my results follow the literature: stronger priors provide larger improvements than the small SE change tested here.
 
 \section{Data}
 Table~\ref{tab:data-summary} summarizes the datasets present in the repository and clarifies which ones were used in the final runs.
@@ -101,11 +101,11 @@ The preprocessing is simple and consistent with patch-based compression training
 \label{fig:preprocessing}
 \end{figure}
 
-This pipeline is reasonable for a course project, but it has two limitations. First, there is no separate held-out CLIC test set in the final setup; Kodak is the only external benchmark. Second, because the model is trained with MSE loss but also reported with MS-SSIM, the MS-SSIM numbers should be interpreted as secondary evaluation rather than a directly optimized target.
+This pipeline is reasonable for a course project, but it has two limitations. First, there is no separate held-out CLIC test set in the final setup; Kodak is the only external benchmark. Second, because the model is trained with MSE loss but also reported with MS-SSIM, the MS-SSIM numbers should be seen as a secondary evaluation rather than a directly optimized target.
 
 \section{Methods}
 \subsection{Baseline Model and SE Variants}
-The baseline is the pretrained \texttt{bmshj2018\_hyperprior} model from CompressAI~\cite{begaint2020compressai}, corresponding to the scale hyperprior of Ball\'e et al.~\cite{balle2018hyperprior}. For an input image \(x\), the model computes
+The baseline is the pretrained \texttt{bmshj2018\_hyperprior} model from CompressAI~\cite{begaint2020compressai}, which corresponds to the scale hyperprior of Ball\'e et al.~\cite{balle2018hyperprior}. For an input image \(x\), the model computes
 \begin{align}
 y &= g_a(x), \\
 z &= h_a(y), \\
@@ -114,14 +114,14 @@ z &= h_a(y), \\
 \hat{y} &\sim p_{\hat{y}\mid \hat{z}}(\cdot \mid \sigma), \\
 \hat{x} &= g_s(\hat{y}),
 \end{align}
-where \(g_a\) and \(g_s\) are the analysis and synthesis transforms, \(h_a\) and \(h_s\) form the hyperprior branch, and the latent likelihoods define the bitrate surrogate.
+where \(g_a\) and \(g_s\) are the analysis and synthesis transforms, \(h_a\) and \(h_s\) form the hyperprior branch, and the latent likelihoods define the bitrate term used during training.
 
 My modification leaves \(h_a\), \(h_s\), the entropy bottleneck, and the Gaussian conditional unchanged. The only change is the insertion of Squeeze-and-Excitation (SE) blocks into the transform network. Given a feature map \(f \in \mathbb{R}^{C \times H \times W}\), the SE block computes
 \begin{align}
 s &= \sigma\!\left(W_2 \, \mathrm{ReLU}(W_1 \, \mathrm{GAP}(f))\right), \\
 f'_{c,h,w} &= s_c \cdot f_{c,h,w},
 \end{align}
-where \(\mathrm{GAP}\) is global average pooling and \(s \in [0,1]^C\) rescales channels. Variant \(B\) inserts one SE block in the encoder after the second convolution; variant \(C\) inserts the same encoder block and one additional SE block in the decoder after the second transposed convolution.
+where \(\mathrm{GAP}\) is global average pooling and \(s \in [0,1]^C\) rescales channels. Variant \(B\) inserts one SE block in the encoder after the second convolution, while variant \(C\) inserts the same encoder block and one additional SE block in the decoder after the second transposed convolution.
 
 \begin{figure}[t]
 \centering
@@ -258,7 +258,7 @@ where \(\mathrm{GAP}\) is global average pooling and \(s \in [0,1]^C\) rescales 
 \label{fig:variant-comparison}
 \end{figure}
 
-Figures~\ref{fig:system-overview}--\ref{fig:variant-comparison} summarize the implemented model at increasing detail. The modification remains lightweight: at quality level 3, variant \(B\) adds only 2,184 parameters and variant \(C\) adds 4,368 parameters over the 5.08M-parameter baseline.
+Figures~\ref{fig:system-overview}--\ref{fig:variant-comparison} summarize the implemented model at increasing detail. The modification remains lightweight: at quality level 3, variant \(B\) adds only 2,184 parameters and variant \(C\) adds 4,368 parameters on top of the 5.08M-parameter baseline.
 
 \begin{table}[t]
 \centering
@@ -278,9 +278,9 @@ Variant & Description & Parameters \\
 \end{table}
 
 \subsection{Initialization and Optimization}
-All project variants are initialized from the official pretrained scale hyperprior weights. For the SE variants, pretrained weights are transferred into the modified layer indices, while the new SE blocks are initialized near the identity: the second fully connected layer is initialized with zero weights and a bias of 5.0, so the initial sigmoid outputs are close to 1. This is a sensible engineering choice because it reduces the disruption caused by inserting new modules into an already trained compression model.
+All project variants are initialized from the official pretrained scale hyperprior weights. For the SE variants, pretrained weights are transferred into the modified layer indices, while the new SE blocks are initialized near the identity: the second fully connected layer is initialized with zero weights and a bias of 5.0, so the initial sigmoid outputs are close to 1. This is a sensible choice because it reduces how much the pretrained model is disturbed when the new modules are inserted.
 
-Training uses the rate-distortion objective
+Training uses the standard rate-distortion objective
 \begin{equation}
 \mathcal{L} = \lambda D(x,\hat{x}) + R(\hat{y}) + R(\hat{z}),
 \label{eq:rd}
@@ -289,22 +289,22 @@ where \(D\) is MSE in the main experiments and
 \begin{equation}
 R = -\frac{1}{HW}\sum \log_2 p(\hat{y}) - \frac{1}{HW}\sum \log_2 p(\hat{z}).
 \end{equation}
-The implementation follows the standard CompressAI convention and scales the MSE distortion by \(255^2\). Four operating points are trained with \(\lambda \in \{0.0018, 0.0035, 0.0067, 0.013\}\), matched to quality levels 1--4.
+The implementation follows the standard CompressAI convention and scales the MSE distortion by \(255^2\). Four operating points are trained with \(\lambda \in \{0.0018, 0.0035, 0.0067, 0.013\}\), matching quality levels 1--4.
 
 Optimization uses Adam with separate learning rates for backbone and SE parameters: \(10^{-4}\) for pretrained backbone weights, \(10^{-3}\) for SE parameters, and \(10^{-3}\) for the auxiliary entropy-model quantiles. The scheduler is \texttt{ReduceLROnPlateau} with factor 0.1 and patience 10. Runs stop after 100 epochs at most, with early stopping after 20 epochs without validation-loss improvement. Batch size is 32, patch size is \(256\times256\), and training is deterministic with seed 42.
 
 \subsection{Freeze-Mode Ablations and Evaluation Protocol}
 Beyond the proposal, the final repository includes three training modes: \texttt{none}, \texttt{frozen\_hyperprior}, and \texttt{attention\_only}. The first updates all trainable weights, the second freezes the hyperprior path, and the third updates only the SE parameters. These ablations help answer whether the SE modules are useful as small adapters or only when the full model is allowed to adapt.
 
-For evaluation, the repository computes both estimated bitrate from latent likelihoods and true coded bitrate from actual entropy coding. The final report uses true coded bitrate for all primary conclusions. This matters because the differences among \(A_{\mathrm{ft}}\), \(B\), and \(C\) are very small: for the project variants, coded bitrate exceeds estimated bitrate by only \(1.56\times 10^{-4}\) to \(1.10\times 10^{-3}\) bpp, but that is already comparable to the size of the observed gaps between the curves.
+For evaluation, the repository computes both estimated bitrate from latent likelihoods and true coded bitrate from actual entropy coding. The final report uses true coded bitrate for all main conclusions. This matters because the differences among \(A_{\mathrm{ft}}\), \(B\), and \(C\) are very small: for the project variants, coded bitrate exceeds estimated bitrate by only \(1.56\times 10^{-4}\) to \(1.10\times 10^{-3}\) bpp, but that is already similar in size to the observed gaps between the curves.
 
-The final evaluation code also measures runtime. A forward pass is timed on the main CUDA model with synchronization before and after \texttt{model(x)}. True encoding and decoding times are measured separately using \texttt{compress()} and \texttt{decompress()} on a CPU copy of the model, because the entropy-coding path in CompressAI is CPU-based in this setup. I therefore report three timing numbers: forward time, encode time, and decode time, along with the codec total (encode+decode). These measurements are useful for testing the ``lightweight'' claim, but they should still be interpreted as machine-specific rather than universal throughput numbers.
+The final evaluation code also measures runtime. A forward pass is timed on the main CUDA model with synchronization before and after \texttt{model(x)}. True encoding and decoding times are measured separately using \texttt{compress()} and \texttt{decompress()} on a CPU copy of the model, because the entropy-coding path in CompressAI is CPU-based in this setup. I therefore report three timing numbers: forward time, encode time, and decode time, along with the codec total (encode+decode). These measurements are useful for checking the ``lightweight'' claim, but they should still be interpreted as machine-specific rather than universal throughput numbers.
 
 \section{Experiments}
 \subsection{Experimental Setup}
 The main project comparison uses the four Kodak operating points corresponding to qualities 1--4. I report PSNR, MS-SSIM, and coded bits per pixel. The fair comparison point is the fine-tuned vanilla baseline \(A_{\mathrm{ft}}\), not the frozen official pretrained model \(A\), because \(B\) and \(C\) are themselves fine-tuned from pretrained weights.
 
-The repository also evaluates four stronger pretrained reference models from the CompressAI zoo: the factorized prior baseline, MBT 2018 mean, MBT 2018, and Cheng 2020 anchor. These are not direct baselines for the project hypothesis, but they help calibrate the size of any improvement. If a small SE block only changes BD-rate by a few hundredths of a percent while stronger priors improve it by 8--25\%, that strongly affects the interpretation of the result.
+The repository also evaluates four stronger pretrained reference models from the CompressAI zoo: the factorized prior baseline, MBT 2018 mean, MBT 2018, and Cheng 2020 anchor. These are not direct baselines for my main hypothesis, but they help show how large an improvement really is. If a small SE block only changes BD-rate by a few hundredths of a percent while stronger priors improve it by 8--25\%, that clearly affects how the result should be interpreted.
 
 One important repository finding is that older intermediate results should not be used for the final report. The current \texttt{results\_discussion.md} explicitly notes that earlier plots were misleading because they mixed stale summaries and uncoded evaluation. The final report therefore uses the corrected summaries generated on 2026-05-28 by \texttt{evaluate.py} and \texttt{plot.py}.
 
@@ -362,7 +362,7 @@ Figures~\ref{fig:rd-psnr} and~\ref{fig:rd-msssim} show the project-level rate-di
 \label{fig:rd-msssim}
 \end{figure}
 
-Table~\ref{tab:bd-rate} quantifies this overlap through BD-rate relative to \(A_{\mathrm{ft}}\). The encoder-only SE model \(B\) is slightly worse in PSNR BD-rate and marginally better in MS-SSIM BD-rate; the encoder+decoder model \(C\) is slightly worse in both metrics. In practice, these numbers are so small that they should be interpreted as a tie rather than a meaningful gain. By contrast, MBT 2018 and Cheng 2020 provide clearly better RD behavior, which is consistent with the literature on stronger context and prior modeling.
+Table~\ref{tab:bd-rate} quantifies this overlap through BD-rate relative to \(A_{\mathrm{ft}}\). The encoder-only SE model \(B\) is slightly worse in PSNR BD-rate and marginally better in MS-SSIM BD-rate; the encoder+decoder model \(C\) is slightly worse in both metrics. In practice, these numbers are so small that they are better described as a tie than as a meaningful gain. By contrast, MBT 2018 and Cheng 2020 provide clearly better RD behavior, which is consistent with the literature on stronger context and prior modeling.
 
 \begin{table}[t]
 \centering
@@ -467,7 +467,7 @@ Variant & Freeze mode & {coded bpp} & {PSNR (dB)} & {Best epoch} \\
 \end{tabularx}
 \end{table}
 
-Two patterns stand out. First, \texttt{attention\_only} peaks much earlier and underperforms the fully trainable runs, especially for \(B\). This suggests that the SE modules alone do not have enough capacity to retune the compression model meaningfully. Second, \texttt{frozen\_hyperprior} is usually close to \texttt{none} but not better, so freezing the prior does not reveal a hidden benefit of the transform-side attention either.
+Two patterns stand out. First, \texttt{attention\_only} peaks much earlier and underperforms the fully trainable runs, especially for \(B\). This suggests that the SE modules alone do not have enough capacity to retune the compression model in a useful way. Second, \texttt{frozen\_hyperprior} is usually close to \texttt{none} but not better, so freezing the prior does not reveal a hidden benefit of the transform-side attention either.
 
 Figure~\ref{fig:convergence} shows the validation curves for the \texttt{none} runs at quality 3. The three models converge in almost the same region, which matches the final Kodak evaluation. There is no visible sign that the SE variants settle at a distinctly better optimum.
 
@@ -509,7 +509,7 @@ One possible reason is that my SE design is much simpler than the attention used
 \section{Conclusion}
 This project implemented the proposed idea successfully at the engineering level. I built two SE-augmented variants of the scale hyperprior, transferred pretrained weights carefully, added fair control baselines, trained multiple freeze-mode ablations, and evaluated the models with true coded bitrate on Kodak.
 
-The final experimental outcome is negative but informative. After correcting the evaluation pipeline and comparing against a fine-tuned vanilla control, the SE variants do not provide a meaningful rate-distortion improvement. Their Kodak curves are essentially on top of the baseline, while stronger pretrained priors such as MBT 2018 and Cheng 2020 show clearly larger gains. The main lesson is that for learned compression, improving the prior model is usually more impactful than inserting a very small amount of channel attention into the transforms.
+The final experimental outcome is negative but still informative. After correcting the evaluation pipeline and comparing against a fine-tuned vanilla control, the SE variants do not provide a meaningful rate-distortion improvement. Their Kodak curves are essentially on top of the baseline, while stronger pretrained priors such as MBT 2018 and Cheng 2020 show clearly larger gains. The main lesson is that, for learned compression, improving the prior model is usually more helpful than inserting a very small amount of channel attention into the transforms.
 
 For a course project, this is still a useful result. The implementation work was substantial, the comparisons are reasonably clean, and the report can make an honest claim: under this training and evaluation setup, lightweight SE attention did not noticeably improve a scale-hyperprior image compressor.
 
