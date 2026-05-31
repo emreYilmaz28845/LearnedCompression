@@ -211,13 +211,13 @@ def axis_bounds(curve_data, metric):
     return (x_min - x_pad, x_max + x_pad), (y_min - y_pad, y_max + y_pad)
 
 
-def style_axes(ax):
+def style_axes(ax, tick_labelsize=11):
     ax.set_facecolor("#FAFAFA")
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.spines["left"].set_color("#B8B8B8")
     ax.spines["bottom"].set_color("#B8B8B8")
-    ax.tick_params(colors="#333333", labelsize=11)
+    ax.tick_params(colors="#333333", labelsize=tick_labelsize)
     ax.grid(True, which="major", color="#D9D9D9", linewidth=0.8, alpha=0.8)
     ax.grid(True, which="minor", color="#EEEEEE", linewidth=0.6, alpha=0.7)
 
@@ -697,8 +697,9 @@ def plot_rd_curves(data, output_dir, metric="psnr", variants=None, suffix=""):
     if not curve_data:
         return {}, None
 
-    fig, ax = plt.subplots(1, 1, figsize=(10.5, 7.0))
-    style_axes(ax)
+    presentation_zoom = suffix == "_project_zoom"
+    fig, ax = plt.subplots(1, 1, figsize=(11.5, 7.6) if presentation_zoom else (10.5, 7.0))
+    style_axes(ax, tick_labelsize=13 if presentation_zoom else 11)
 
     reference_variant = bd_reference_variant(curve_data)
     bd_rates = {}
@@ -728,8 +729,10 @@ def plot_rd_curves(data, output_dir, metric="psnr", variants=None, suffix=""):
             )
             bd_rates[variant] = compute_bd_rate(ref_bpps, ref_vals, bpps, vals)
 
-    ax.set_xlabel("Bits per pixel (bpp)", fontsize=13, color="#222222")
-    ax.set_ylabel("PSNR (dB)" if metric == "psnr" else "MS-SSIM (dB)", fontsize=13, color="#222222")
+    axis_fontsize = 16 if presentation_zoom else 13
+    legend_fontsize = 13 if presentation_zoom else 10
+    ax.set_xlabel("Bits per pixel (bpp)", fontsize=axis_fontsize, color="#222222")
+    ax.set_ylabel("PSNR (dB)" if metric == "psnr" else "MS-SSIM (dB)", fontsize=axis_fontsize, color="#222222")
     ax.xaxis.set_major_locator(MaxNLocator(nbins=6))
     ax.yaxis.set_major_locator(MaxNLocator(nbins=6))
     if variants is None:
@@ -739,8 +742,8 @@ def plot_rd_curves(data, output_dir, metric="psnr", variants=None, suffix=""):
         if xlim and ylim:
             ax.set_xlim(*xlim)
             ax.set_ylim(*ylim)
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.12), ncol=3, frameon=False, fontsize=10)
-    fig.subplots_adjust(top=0.82, right=0.92)
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.14), ncol=3, frameon=False, fontsize=legend_fontsize)
+    fig.subplots_adjust(top=0.80 if presentation_zoom else 0.82, right=0.92)
 
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)

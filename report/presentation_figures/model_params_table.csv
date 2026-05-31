@@ -1,0 +1,53 @@
+variant,label,quality,freeze_mode,total_params,params_millions
+A_ft,Fine-tuned Baseline,1,none,5075843,5.075843
+A_ft,Fine-tuned Baseline,1,frozen_hyperprior,5075843,5.075843
+A_ft,Fine-tuned Baseline,2,frozen_hyperprior,5075843,5.075843
+A_ft,Fine-tuned Baseline,2,none,5075843,5.075843
+A_ft,Fine-tuned Baseline,3,frozen_hyperprior,5075843,5.075843
+A_ft,Fine-tuned Baseline,3,none,5075843,5.075843
+A_ft,Fine-tuned Baseline,4,none,5075843,5.075843
+A_ft,Fine-tuned Baseline,4,frozen_hyperprior,5075843,5.075843
+A,Pretrained Baseline,1,pretrained_reference,5075843,5.075843
+A,Pretrained Baseline,2,pretrained_reference,5075843,5.075843
+A,Pretrained Baseline,3,pretrained_reference,5075843,5.075843
+A,Pretrained Baseline,4,pretrained_reference,5075843,5.075843
+B,Encoder SE,1,attention_only,5078027,5.078027
+B,Encoder SE,1,none,5078027,5.078027
+B,Encoder SE,1,frozen_hyperprior,5078027,5.078027
+B,Encoder SE,2,attention_only,5078027,5.078027
+B,Encoder SE,2,none,5078027,5.078027
+B,Encoder SE,2,frozen_hyperprior,5078027,5.078027
+B,Encoder SE,3,attention_only,5078027,5.078027
+B,Encoder SE,3,frozen_hyperprior,5078027,5.078027
+B,Encoder SE,3,none,5078027,5.078027
+B,Encoder SE,4,attention_only,5078027,5.078027
+B,Encoder SE,4,none,5078027,5.078027
+B,Encoder SE,4,frozen_hyperprior,5078027,5.078027
+C,Encoder+Decoder SE,1,attention_only,5080211,5.080211
+C,Encoder+Decoder SE,1,none,5080211,5.080211
+C,Encoder+Decoder SE,1,frozen_hyperprior,5080211,5.080211
+C,Encoder+Decoder SE,2,attention_only,5080211,5.080211
+C,Encoder+Decoder SE,2,frozen_hyperprior,5080211,5.080211
+C,Encoder+Decoder SE,2,none,5080211,5.080211
+C,Encoder+Decoder SE,3,attention_only,5080211,5.080211
+C,Encoder+Decoder SE,3,none,5080211,5.080211
+C,Encoder+Decoder SE,3,frozen_hyperprior,5080211,5.080211
+C,Encoder+Decoder SE,4,attention_only,5080211,5.080211
+C,Encoder+Decoder SE,4,frozen_hyperprior,5080211,5.080211
+C,Encoder+Decoder SE,4,none,5080211,5.080211
+bmshj2018_factorized,BMSHJ 2018 Factorized,1,pretrained_reference,2998147,2.998147
+bmshj2018_factorized,BMSHJ 2018 Factorized,2,pretrained_reference,2998147,2.998147
+bmshj2018_factorized,BMSHJ 2018 Factorized,3,pretrained_reference,2998147,2.998147
+bmshj2018_factorized,BMSHJ 2018 Factorized,4,pretrained_reference,2998147,2.998147
+mbt2018_mean,MBT 2018 Mean,1,pretrained_reference,7028003,7.028003
+mbt2018_mean,MBT 2018 Mean,2,pretrained_reference,7028003,7.028003
+mbt2018_mean,MBT 2018 Mean,3,pretrained_reference,7028003,7.028003
+mbt2018_mean,MBT 2018 Mean,4,pretrained_reference,7028003,7.028003
+mbt2018,MBT 2018,1,pretrained_reference,14130467,14.130467
+mbt2018,MBT 2018,2,pretrained_reference,14130467,14.130467
+mbt2018,MBT 2018,3,pretrained_reference,14130467,14.130467
+mbt2018,MBT 2018,4,pretrained_reference,14130467,14.130467
+cheng2020_anchor,Cheng 2020 Anchor,1,pretrained_reference,11833149,11.833149
+cheng2020_anchor,Cheng 2020 Anchor,2,pretrained_reference,11833149,11.833149
+cheng2020_anchor,Cheng 2020 Anchor,3,pretrained_reference,11833149,11.833149
+cheng2020_anchor,Cheng 2020 Anchor,4,pretrained_reference,26598956,26.598956
