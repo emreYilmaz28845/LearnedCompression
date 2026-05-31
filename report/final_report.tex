@@ -490,18 +490,19 @@ Figure~\ref{fig:qualitative} shows one Kodak example and a zoomed crop. All thre
 
 This qualitative result is consistent with the quantitative one. The SE blocks do not fail catastrophically; they simply do not produce a visible gain large enough to stand out from ordinary run-to-run or operating-point differences.
 
-\subsection{What Is Missing and What Would Improve the Evidence}
+\subsection{What Would Improve the Evidence}
 Although the repository is in a reasonably good state for a term project, the experimental evidence is still limited in several ways.
 
 \begin{itemize}[leftmargin=1.3em]
   \item Only one random seed is reported. Since the observed differences are extremely small, multi-seed training would be necessary to decide whether the tiny BD-rate gaps are real.
   \item All learned variants are trained with MSE. Training a parallel MS-SSIM-optimized set would make the MS-SSIM evaluation more meaningful.
-  \item There is no classical codec baseline such as JPEG, JPEG 2000, or BPG. Even a limited comparison would improve the practical framing.
   \item Runtime is measured only on one local hardware/software stack. The current timing table is useful for relative comparison, but a stronger systems claim would require repeated measurements across multiple runs and cleaner CPU/GPU benchmarking conditions.
   \item The project changes only one SE insertion location. A broader attention-placement ablation could test whether the null result is due to weak attention or simply the chosen location.
 \end{itemize}
 
 Within the current repository, however, the central conclusion is already stable: stronger entropy models matter much more than the tested SE augmentation.
+
+One possible reason is that our SE design is much simpler than the attention used in stronger models such as Cheng 2020. In our model, the SE block uses global average pooling and gives one weight to each channel, so the same scaling is used everywhere in the feature map. This is lightweight and easy to add, but it may be too simple for image compression, where different parts of an image can look very different. Cheng 2020, on the other hand, uses a stronger overall model with more flexible attention and a better prior model. Because of that, its better rate-distortion results should not be taken to mean that any attention block will help. A safer interpretation is that simple global channel reweighting was not enough in our setting, while stronger attention and stronger entropy modeling can be more useful.
 
 \FloatBarrier
 
@@ -511,14 +512,6 @@ This project implemented the proposed idea successfully at the engineering level
 The final experimental outcome is negative but informative. After correcting the evaluation pipeline and comparing against a fine-tuned vanilla control, the SE variants do not provide a meaningful rate-distortion improvement. Their Kodak curves are essentially on top of the baseline, while stronger pretrained priors such as MBT 2018 and Cheng 2020 show clearly larger gains. The main lesson is that for learned compression, improving the prior model is usually more impactful than inserting a very small amount of channel attention into the transforms.
 
 For a course project, this is still a useful result. The implementation work was substantial, the comparisons are reasonably clean, and the report can make an honest claim: under this training and evaluation setup, lightweight SE attention did not noticeably improve a scale-hyperprior image compressor.
-
-\begin{itemize}[leftmargin=1.3em]
-  \item A short appendix with full per-image Kodak metrics and the coded-vs-estimated bitrate differences.
-  \item A zip file containing the TensorBoard logs for the final 2026-05-28 runs.
-  \item A small README describing the role of the main training, evaluation, plotting, and model files.
-  \item Additional reconstruction panels or an interactive slider for \(A_{\mathrm{ft}}\), \(B\), and \(C\).
-  \item If time permits before submission, an extra appendix table with multi-seed means and standard deviations.
-\end{itemize}
 
 \begin{thebibliography}{9}
 
