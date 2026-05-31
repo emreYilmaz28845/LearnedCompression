@@ -159,23 +159,20 @@ where \(\mathrm{GAP}\) is global average pooling and \(s \in [0,1]^C\) rescales 
 \begin{tikzpicture}[
   font=\small,
   box/.style={draw, rounded corners=3pt, align=center, minimum width=2.15cm, minimum height=0.8cm, fill=blue!6},
-  se/.style={draw, rounded corners=3pt, align=center, minimum width=1.4cm, minimum height=0.75cm, fill=orange!18},
   arr/.style={-{Latex[length=2.4mm]}, thick},
   node distance=0.65cm,
 ]
 \node[box] (in) {Input};
 \node[box, below=of in] (c1) {Conv + GDN};
-\node[box, below=of c1] (c2) {Conv};
-\node[se, below=of c2] (se) {SE};
-\node[box, below=of se] (c3) {Conv + GDN};
+\node[box, below=of c1, fill=orange!14] (c2) {Conv\\[-1pt]\textcolor{orange!70!black}{then internal SE}};
+\node[box, below=of c2] (c3) {Conv + GDN};
 \node[box, below=of c3] (out) {Latent \(y\)};
 \draw[arr] (in) -- (c1);
 \draw[arr] (c1) -- (c2);
-\draw[arr] (c2) -- (se);
-\draw[arr] (se) -- (c3);
+\draw[arr] (c2) -- (c3);
 \draw[arr] (c3) -- (out);
 \end{tikzpicture}
-\caption{Encoder-side view. In the attention variants, one SE block is inserted between the middle encoder stages.}
+\caption{Encoder-side view. In the attention variants, the highlighted middle transform stage applies the SE layer internally after the second convolution.}
 \label{fig:encoder-overview}
 \end{figure}
 
@@ -209,23 +206,20 @@ where \(\mathrm{GAP}\) is global average pooling and \(s \in [0,1]^C\) rescales 
 \begin{tikzpicture}[
   font=\small,
   box/.style={draw, rounded corners=3pt, align=center, minimum width=2.15cm, minimum height=0.8cm, fill=blue!6},
-  se/.style={draw, rounded corners=3pt, align=center, minimum width=1.4cm, minimum height=0.75cm, fill=orange!18},
   arr/.style={-{Latex[length=2.4mm]}, thick},
   node distance=0.65cm,
 ]
 \node[box] (in) {Latent \(\hat{y}\)};
 \node[box, below=of in] (d1) {Deconv + IGDN};
-\node[box, below=of d1] (d2) {Deconv};
-\node[se, below=of d2] (se) {SE};
-\node[box, below=of se] (d3) {Deconv + IGDN};
+\node[box, below=of d1, fill=orange!14] (d2) {Deconv\\[-1pt]\textcolor{orange!70!black}{then internal SE}};
+\node[box, below=of d2] (d3) {Deconv + IGDN};
 \node[box, below=of d3] (out) {RGB};
 \draw[arr] (in) -- (d1);
 \draw[arr] (d1) -- (d2);
-\draw[arr] (d2) -- (se);
-\draw[arr] (se) -- (d3);
+\draw[arr] (d2) -- (d3);
 \draw[arr] (d3) -- (out);
 \end{tikzpicture}
-\caption{Decoder-side view. Only variant \(C\) adds the highlighted decoder SE block.}
+\caption{Decoder-side view. Only variant \(C\) modifies the highlighted middle decoder stage, where the SE layer is applied internally after the second deconvolution.}
 \label{fig:decoder-overview}
 \end{figure}
 
@@ -233,39 +227,34 @@ where \(\mathrm{GAP}\) is global average pooling and \(s \in [0,1]^C\) rescales 
 \centering
 \begin{tikzpicture}[
   font=\small,
-  row/.style={draw, rounded corners=3pt, minimum width=1.55cm, minimum height=0.75cm, align=center, fill=blue!6},
-  se/.style={draw, circle, minimum size=0.42cm, fill=orange!18, inner sep=0pt},
+  row/.style={draw, rounded corners=3pt, minimum height=0.9cm, align=center, fill=blue!6},
+  transform/.style={row, text width=2.45cm},
+  priorblock/.style={row, text width=1.55cm},
   arr/.style={-{Latex[length=2.3mm]}, thick},
   node distance=0.8cm and 0.45cm,
 ]
-\node at (0,0.95) {\(A, A_{\mathrm{ft}}\)};
-\node[row] (a1) at (2.2,0.95) {Encoder};
-\node[row] (a2) at (4.2,0.95) {Prior};
-\node[row] (a3) at (6.2,0.95) {Decoder};
+\node[anchor=east] at (0.75,0.95) {\(A, A_{\mathrm{ft}}\)};
+\node[transform] (a1) at (3.0,0.95) {Encoder};
+\node[priorblock] (a2) at (6.0,0.95) {Prior};
+\node[transform] (a3) at (9.0,0.95) {Decoder};
 \draw[arr] (a1) -- (a2);
 \draw[arr] (a2) -- (a3);
 
-\node at (0,0) {\(B\)};
-\node[row] (b1) at (2.2,0) {Encoder};
-\node[se] (bs) at (3.15,0) {\scriptsize SE};
-\node[row] (b2) at (4.2,0) {Prior};
-\node[row] (b3) at (6.2,0) {Decoder};
-\draw[arr] (b1) -- (bs);
-\draw[arr] (bs) -- (b2);
+\node[anchor=east] at (0.75,0) {\(B\)};
+\node[transform, fill=orange!14] (b1) at (3.0,0) {Encoder\\[-1pt]\textcolor{orange!70!black}{with internal SE}};
+\node[priorblock] (b2) at (6.0,0) {Prior};
+\node[transform] (b3) at (9.0,0) {Decoder};
+\draw[arr] (b1) -- (b2);
 \draw[arr] (b2) -- (b3);
 
-\node at (0,-0.95) {\(C\)};
-\node[row] (c1) at (2.2,-0.95) {Encoder};
-\node[se] (cs1) at (3.15,-0.95) {\scriptsize SE};
-\node[row] (c2) at (4.2,-0.95) {Prior};
-\node[row] (c3) at (6.2,-0.95) {Decoder};
-\node[se] (cs2) at (7.15,-0.95) {\scriptsize SE};
-\draw[arr] (c1) -- (cs1);
-\draw[arr] (cs1) -- (c2);
+\node[anchor=east] at (0.75,-0.95) {\(C\)};
+\node[transform, fill=orange!14] (c1) at (3.0,-0.95) {Encoder\\[-1pt]\textcolor{orange!70!black}{with internal SE}};
+\node[priorblock] (c2) at (6.0,-0.95) {Prior};
+\node[transform, fill=orange!14] (c3) at (9.0,-0.95) {Decoder\\[-1pt]\textcolor{orange!70!black}{with internal SE}};
+\draw[arr] (c1) -- (c2);
 \draw[arr] (c2) -- (c3);
-\draw[arr] (c3) -- (cs2);
 \end{tikzpicture}
-\caption{Variant comparison. The project modifies only the transform network: \(B\) adds encoder attention, and \(C\) adds both encoder and decoder attention.}
+\caption{Variant comparison. The project modifies only the transform network: \(B\) embeds SE inside the encoder pipeline, and \(C\) embeds SE inside both encoder and decoder pipelines.}
 \label{fig:variant-comparison}
 \end{figure}
 
@@ -522,9 +511,6 @@ This project implemented the proposed idea successfully at the engineering level
 The final experimental outcome is negative but informative. After correcting the evaluation pipeline and comparing against a fine-tuned vanilla control, the SE variants do not provide a meaningful rate-distortion improvement. Their Kodak curves are essentially on top of the baseline, while stronger pretrained priors such as MBT 2018 and Cheng 2020 show clearly larger gains. The main lesson is that for learned compression, improving the prior model is usually more impactful than inserting a very small amount of channel attention into the transforms.
 
 For a course project, this is still a useful result. The implementation work was substantial, the comparisons are reasonably clean, and the report can make an honest claim: under this training and evaluation setup, lightweight SE attention did not noticeably improve a scale-hyperprior image compressor.
-
-\section*{Supplementary Suggestions}
-The following supplementary material would strengthen the final submission without changing the main claims:
 
 \begin{itemize}[leftmargin=1.3em]
   \item A short appendix with full per-image Kodak metrics and the coded-vs-estimated bitrate differences.

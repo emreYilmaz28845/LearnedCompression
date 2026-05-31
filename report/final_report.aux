@@ -1,0 +1,82 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\citation{balle2018hyperprior}
+\citation{begaint2020compressai}
+\@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}\protected@file@percent }
+\citation{balle2017e2e}
+\citation{balle2018hyperprior}
+\citation{minnen2018joint}
+\citation{cheng2020anchor}
+\citation{cheng2020anchor}
+\citation{hu2018senet}
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Datasets found in the repository and their final role in the project.}}{2}{table.caption.1}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{tab:data-summary}{{1}{2}{Datasets found in the repository and their final role in the project}{table.caption.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {2}Related Work}{2}{section.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3}Data}{2}{section.3}\protected@file@percent }
+\citation{begaint2020compressai}
+\citation{balle2018hyperprior}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Patch-based preprocessing used during training. The final pipeline samples \(256\times 256\) crops from CLIC images and applies horizontal flips; validation keeps the same patch size but uses deterministic center crops.}}{3}{figure.caption.2}\protected@file@percent }
+\newlabel{fig:preprocessing}{{1}{3}{Patch-based preprocessing used during training. The final pipeline samples \(256\times 256\) crops from CLIC images and applies horizontal flips; validation keeps the same patch size but uses deterministic center crops}{figure.caption.2}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Methods}{3}{section.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Baseline Model and SE Variants}{3}{subsection.4.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces High-level compression system. The transform path produces the main latents \(y\), while a separate hyperprior path predicts the scale information used by the entropy model.}}{4}{figure.caption.3}\protected@file@percent }
+\newlabel{fig:system-overview}{{2}{4}{High-level compression system. The transform path produces the main latents \(y\), while a separate hyperprior path predicts the scale information used by the entropy model}{figure.caption.3}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Encoder-side view. In the attention variants, the highlighted middle transform stage applies the SE layer internally after the second convolution.}}{4}{figure.caption.4}\protected@file@percent }
+\newlabel{fig:encoder-overview}{{3}{4}{Encoder-side view. In the attention variants, the highlighted middle transform stage applies the SE layer internally after the second convolution}{figure.caption.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Initialization and Optimization}{4}{subsection.4.2}\protected@file@percent }
+\newlabel{eq:rd}{{9}{4}{Initialization and Optimization}{equation.4.9}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Entropy side-information path. This branch is unchanged across \(A\), \(A_{\mathrm  {ft}}\), \(B\), and \(C\).}}{5}{figure.caption.5}\protected@file@percent }
+\newlabel{fig:hyperprior-overview}{{4}{5}{Entropy side-information path. This branch is unchanged across \(A\), \(A_{\mathrm {ft}}\), \(B\), and \(C\)}{figure.caption.5}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Decoder-side view. Only variant \(C\) modifies the highlighted middle decoder stage, where the SE layer is applied internally after the second deconvolution.}}{5}{figure.caption.6}\protected@file@percent }
+\newlabel{fig:decoder-overview}{{5}{5}{Decoder-side view. Only variant \(C\) modifies the highlighted middle decoder stage, where the SE layer is applied internally after the second deconvolution}{figure.caption.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Freeze-Mode Ablations and Evaluation Protocol}{5}{subsection.4.3}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Variant comparison. The project modifies only the transform network: \(B\) embeds SE inside the encoder pipeline, and \(C\) embeds SE inside both encoder and decoder pipelines.}}{6}{figure.caption.7}\protected@file@percent }
+\newlabel{fig:variant-comparison}{{6}{6}{Variant comparison. The project modifies only the transform network: \(B\) embeds SE inside the encoder pipeline, and \(C\) embeds SE inside both encoder and decoder pipelines}{figure.caption.7}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Implemented model variants used in the report. Parameter counts come from the final evaluation summaries.}}{6}{table.caption.8}\protected@file@percent }
+\newlabel{tab:variants}{{2}{6}{Implemented model variants used in the report. Parameter counts come from the final evaluation summaries}{table.caption.8}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Experiments}{6}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Experimental Setup}{6}{subsection.5.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Implementation Environment}{6}{subsection.5.2}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Training and evaluation workflow used for the final report. Runtime measurements come only from the Kodak evaluation stage.}}{7}{figure.caption.9}\protected@file@percent }
+\newlabel{fig:eval-pipeline}{{7}{7}{Training and evaluation workflow used for the final report. Runtime measurements come only from the Kodak evaluation stage}{figure.caption.9}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces BD-rate relative to the fine-tuned vanilla baseline \(A_{\mathrm  {ft}}\). Negative is better.}}{7}{table.caption.12}\protected@file@percent }
+\newlabel{tab:bd-rate}{{3}{7}{BD-rate relative to the fine-tuned vanilla baseline \(A_{\mathrm {ft}}\). Negative is better}{table.caption.12}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}Main Rate-Distortion Results}{7}{subsection.5.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}Lightweight Parameter and Runtime Tradeoff}{7}{subsection.5.4}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces PSNR versus coded bitrate for the main project variants. The three curves are almost indistinguishable on Kodak.}}{8}{figure.caption.10}\protected@file@percent }
+\newlabel{fig:rd-psnr}{{8}{8}{PSNR versus coded bitrate for the main project variants. The three curves are almost indistinguishable on Kodak}{figure.caption.10}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {9}{\ignorespaces MS-SSIM versus coded bitrate for the same three variants. The ordering is again effectively a tie.}}{9}{figure.caption.11}\protected@file@percent }
+\newlabel{fig:rd-msssim}{{9}{9}{MS-SSIM versus coded bitrate for the same three variants. The ordering is again effectively a tie}{figure.caption.11}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Lightweight tradeoff for the main project variants, averaged over Kodak qualities 1--4. Timings come from the corrected 2026-05-28 evaluation pipeline; forward pass is timed on GPU, while \texttt  {compress()}/\texttt  {decompress()} are timed on CPU.}}{9}{table.caption.15}\protected@file@percent }
+\newlabel{tab:runtime-tradeoff}{{4}{9}{Lightweight tradeoff for the main project variants, averaged over Kodak qualities 1--4. Timings come from the corrected 2026-05-28 evaluation pipeline; forward pass is timed on GPU, while \texttt {compress()}/\texttt {decompress()} are timed on CPU}{table.caption.15}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {10}{\ignorespaces PSNR BD-rate against the fine-tuned vanilla baseline. This view is easier to read than the full multi-model RD curve and makes the large gap between the SE variants and stronger reference priors immediately visible.}}{10}{figure.caption.13}\protected@file@percent }
+\newlabel{fig:bd-rate-psnr}{{10}{10}{PSNR BD-rate against the fine-tuned vanilla baseline. This view is easier to read than the full multi-model RD curve and makes the large gap between the SE variants and stronger reference priors immediately visible}{figure.caption.13}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {11}{\ignorespaces Evaluation-time breakdown for the three main project variants. The forward pass is small compared with entropy coding, and the SE variants stay close to the fine-tuned baseline in all three components.}}{10}{figure.caption.14}\protected@file@percent }
+\newlabel{fig:runtime-components}{{11}{10}{Evaluation-time breakdown for the three main project variants. The forward pass is small compared with entropy coding, and the SE variants stay close to the fine-tuned baseline in all three components}{figure.caption.14}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {12}{\ignorespaces Mean encode+decode runtime across locally evaluated reference implementations. The log scale is necessary because the autoregressive/context-heavy models are much slower than the scale-hyperprior family.}}{11}{figure.caption.16}\protected@file@percent }
+\newlabel{fig:runtime-all}{{12}{11}{Mean encode+decode runtime across locally evaluated reference implementations. The log scale is necessary because the autoregressive/context-heavy models are much slower than the scale-hyperprior family}{figure.caption.16}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {13}{\ignorespaces Bitrate-runtime tradeoff using mean Kodak measurements. The local reference implementations provide a clean practical comparison without mixing hardware-dependent runtime numbers from the literature.}}{11}{figure.caption.17}\protected@file@percent }
+\newlabel{fig:runtime-bitrate}{{13}{11}{Bitrate-runtime tradeoff using mean Kodak measurements. The local reference implementations provide a clean practical comparison without mixing hardware-dependent runtime numbers from the literature}{figure.caption.17}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}Freeze-Mode Ablations}{12}{subsection.5.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.6}Qualitative Reconstruction Comparison}{12}{subsection.5.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.7}What Is Missing and What Would Improve the Evidence}{12}{subsection.5.7}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Mid-rate ablation at quality 3 (\(\lambda =0.0067\)). Best epoch is read from the saved checkpoint metadata.}}{13}{table.caption.18}\protected@file@percent }
+\newlabel{tab:freeze-ablation}{{5}{13}{Mid-rate ablation at quality 3 (\(\lambda =0.0067\)). Best epoch is read from the saved checkpoint metadata}{table.caption.18}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {14}{\ignorespaces Validation convergence at quality 3 for the fully trainable runs. The curves track each other closely, and the final PSNR values are nearly identical.}}{13}{figure.caption.19}\protected@file@percent }
+\newlabel{fig:convergence}{{14}{13}{Validation convergence at quality 3 for the fully trainable runs. The curves track each other closely, and the final PSNR values are nearly identical}{figure.caption.19}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {15}{\ignorespaces Qualitative comparison on Kodak image \texttt  {kodim03} at quality 3. The SE variants do not recover clearly sharper structure than the fine-tuned vanilla baseline.}}{13}{figure.caption.20}\protected@file@percent }
+\newlabel{fig:qualitative}{{15}{13}{Qualitative comparison on Kodak image \texttt {kodim03} at quality 3. The SE variants do not recover clearly sharper structure than the fine-tuned vanilla baseline}{figure.caption.20}{}}
+\bibcite{balle2017e2e}{1}
+\bibcite{balle2018hyperprior}{2}
+\bibcite{hu2018senet}{3}
+\bibcite{minnen2018joint}{4}
+\bibcite{cheng2020anchor}{5}
+\bibcite{begaint2020compressai}{6}
+\bibcite{timofte2017div2k}{7}
+\bibcite{clic}{8}
+\bibcite{kodak}{9}
+\@writefile{toc}{\contentsline {section}{\numberline {6}Conclusion}{14}{section.6}\protected@file@percent }
+\gdef \@abspage@last{14}
