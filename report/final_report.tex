@@ -48,7 +48,7 @@ I studied whether lightweight channel attention can improve learned image compre
 
 Training was performed on 1,633 CLIC training images with 102 validation images using random 256$\times$256 crops, and evaluation was carried out on the 24-image Kodak benchmark. I report PSNR, MS-SSIM, estimated bitrate, and true coded bitrate obtained from actual \texttt{compress()}/\texttt{decompress()} calls. This turned out to be important during project cleanup: earlier plots based only on estimated bitrate made the SE variants look better than they really were, while the corrected coded-bitrate evaluation shows that the curves are nearly identical.
 
-The final results do not show a meaningful rate-distortion gain from the tested SE modification. Relative to the fine-tuned vanilla baseline, encoder-only SE yields a PSNR BD-rate of \(+0.08\%\) and encoder+decoder SE yields \(+0.17\%\); the MS-SSIM differences are also very small. Across the four operating points, the project variants stay within \(0.009\) dB and \(5.8\times 10^{-4}\) bpp of each other. In contrast, stronger entropy models such as MBT 2018 and Cheng 2020 provide much larger gains. So, within the scope of this course project, the main conclusion is that small transform-side SE attention is easy to integrate, but it does not noticeably improve compression performance in this setting.
+The final results do not show a meaningful rate-distortion gain from the tested SE modification. Relative to the fine-tuned vanilla baseline, encoder-only SE yields a PSNR BD-rate of \(+0.08\%\) and encoder+decoder SE yields \(+0.17\%\); the MS-SSIM differences are also very small. Across the four operating points, the project variants stay within \(0.009\) dB and \(5.8\times 10^{-4}\) bpp of each other. Stronger entropy models such as MBT 2018 and Cheng 2020 provide much larger gains. So, within the scope of this course project, the main conclusion is that small transform-side SE attention is easy to integrate, but it does not noticeably improve compression performance in this setting.
 \end{abstract}
 
 \section{Introduction}
@@ -58,7 +58,9 @@ The starting point of this project was the scale hyperprior model of Ball\'e et 
 
 The final repository stays close to that plan at the model level. I implemented two attention-augmented variants: one with SE attention in the encoder and one with SE attention in both encoder and decoder. At the same time, the experimental pipeline evolved in two important ways. First, the final training runs use CLIC train/validation splits instead of the initially planned DIV2K training set. Second, I added a fine-tuned vanilla control baseline because comparing SE variants only against the frozen official pretrained model would not be a fair test of the modification.
 
-This report therefore focuses on two questions. First, did the implementation actually match the proposed modification? Second, after using the corrected evaluation pipeline and fair baselines, do the SE blocks improve image compression on Kodak? The short answer is that the implementation matches the proposal reasonably well, but the experimental evidence for improvement is weak.
+This report focuses on two questions. First, did the implementation actually match the proposed modification? Second, after using the corrected evaluation pipeline and fair baselines, do the SE blocks improve image compression on Kodak? The short answer is that the implementation matches the proposal reasonably well, but the experimental evidence for improvement is weak.
+
+Project repository: \href{https://github.com/emreYilmaz28845/LearnedCompression.git}{emreYilmaz28845/LearnedCompression.git}.
 
 \section{Related Work}
 Classical codecs such as JPEG and later transform-based codecs rely on carefully designed transforms, quantization rules, and entropy coders. Their main strength is robustness and efficiency, but the transform and prior model are fixed in advance. Learned compression instead treats compression as a rate-distortion learning problem, so the transform and latent prior can adapt to the training data.
@@ -298,7 +300,7 @@ Beyond the proposal, the final repository includes three training modes: \texttt
 
 For evaluation, the repository computes both estimated bitrate from latent likelihoods and true coded bitrate from actual entropy coding. The final report uses true coded bitrate for all main conclusions. This matters because the differences among \(A_{\mathrm{ft}}\), \(B\), and \(C\) are very small: for the project variants, coded bitrate exceeds estimated bitrate by only \(1.56\times 10^{-4}\) to \(1.10\times 10^{-3}\) bpp, but that is already similar in size to the observed gaps between the curves.
 
-The final evaluation code also measures runtime. A forward pass is timed on the main CUDA model with synchronization before and after \texttt{model(x)}. True encoding and decoding times are measured separately using \texttt{compress()} and \texttt{decompress()} on a CPU copy of the model, because the entropy-coding path in CompressAI is CPU-based in this setup. I therefore report three timing numbers: forward time, encode time, and decode time, along with the codec total (encode+decode). These measurements are useful for checking the ``lightweight'' claim, but they should still be interpreted as machine-specific rather than universal throughput numbers.
+The final evaluation code also measures runtime. A forward pass is timed on the main CUDA model with synchronization before and after \texttt{model(x)}. True encoding and decoding times are measured separately using \texttt{compress()} and \texttt{decompress()} on a CPU copy of the model, because the entropy-coding path in CompressAI is CPU-based in this setup. I report three timing numbers: forward time, encode time, and decode time, along with the codec total (encode+decode). These measurements are useful for checking the ``lightweight'' claim, but they should still be interpreted as machine-specific rather than universal throughput numbers.
 
 \section{Experiments}
 \subsection{Experimental Setup}
@@ -306,7 +308,7 @@ The main project comparison uses the four Kodak operating points corresponding t
 
 The repository also evaluates four stronger pretrained reference models from the CompressAI zoo: the factorized prior baseline, MBT 2018 mean, MBT 2018, and Cheng 2020 anchor. These are not direct baselines for my main hypothesis, but they help show how large an improvement really is. If a small SE block only changes BD-rate by a few hundredths of a percent while stronger priors improve it by 8--25\%, that clearly affects how the result should be interpreted.
 
-One important repository finding is that older intermediate results should not be used for the final report. The current \texttt{results\_discussion.md} explicitly notes that earlier plots were misleading because they mixed stale summaries and uncoded evaluation. The final report therefore uses the corrected summaries generated on 2026-05-28 by \texttt{evaluate.py} and \texttt{plot.py}.
+One important repository finding is that older intermediate results should not be used for the final report. The current \texttt{results\_discussion.md} explicitly notes that earlier plots were misleading because they mixed stale summaries and uncoded evaluation. The final report uses the corrected summaries generated on 2026-05-28 by \texttt{evaluate.py} and \texttt{plot.py}.
 
 \begin{figure}[t]
 \centering
@@ -406,7 +408,7 @@ The SE modification was intended to be lightweight, so it is important to check 
 \label{fig:runtime-components}
 \end{figure}
 
-The codec-side timings tell a slightly more nuanced story. Variant \(B\) remains essentially tied with \(A_{\mathrm{ft}}\), but it is modestly slower overall (\(+1.57\%\) total encode+decode time). Variant \(C\) is again very close and in this rerun is slightly faster than \(A_{\mathrm{ft}}\) (\(-1.17\%\) total codec time), mainly because its average decode time is a bit lower. Given how small these differences are, the safest claim is not that SE improves speed, but that the SE additions do not impose a meaningful runtime penalty in the tested setup. Combined with the BD-rate table, this supports a clear conclusion: the modification is lightweight in both parameter count and wall-clock behavior, but it still does not buy a measurable compression gain.
+The codec-side timings tell a slightly more detailed story. Variant \(B\) remains essentially tied with \(A_{\mathrm{ft}}\), but it is modestly slower overall (\(+1.57\%\) total encode+decode time). Variant \(C\) is again very close and in this rerun is slightly faster than \(A_{\mathrm{ft}}\) (\(-1.17\%\) total codec time), mainly because its average decode time is a bit lower. Given how small these differences are, the safest claim is not that SE improves speed, but that the SE additions do not impose a meaningful runtime penalty in the tested setup. Combined with the BD-rate table, this supports a clear conclusion: the modification is lightweight in both parameter count and wall-clock behavior, but it still does not buy a measurable compression gain.
 
 \begin{table}[t]
 \centering
@@ -505,7 +507,7 @@ Although the repository is in a reasonably good state for a term project, the ex
 
 Within the current repository, however, the central conclusion is already stable: stronger entropy models matter much more than the tested SE augmentation.
 
-One possible reason is that my SE design is much simpler than the attention used in stronger models such as Cheng 2020. In my model, the SE block uses global average pooling and gives one weight to each channel, so the same scaling is used everywhere in the feature map. This is lightweight and easy to add, but it may be too simple for image compression, where different parts of an image can look very different. Cheng 2020, on the other hand, uses a stronger overall model with more flexible attention and a better prior model. Because of that, its better rate-distortion results should not be taken to mean that any attention block will help. A safer interpretation is that simple global channel reweighting was not enough in my setting, while stronger attention and stronger entropy modeling can be more useful.
+One possible reason is that my SE design is much simpler than the attention used in stronger models such as Cheng 2020. In my model, the SE block uses global average pooling and gives one weight to each channel, so the same scaling is used everywhere in the feature map. This is lightweight and easy to add, but it may be too simple for image compression, where different parts of an image can look very different. Cheng 2020 uses a stronger overall model with more flexible attention and a better prior model. Because of that, its better rate-distortion results should not be taken to mean that any attention block will help. A safer interpretation is that simple global channel reweighting was not enough in my setting, while stronger attention and stronger entropy modeling can be more useful.
 
 \FloatBarrier
 

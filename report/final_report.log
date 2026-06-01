@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2026.5.30)  31 MAY 2026 13:54
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2026.5.30)  1 JUN 2026 19:54
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -953,63 +953,64 @@ dvips/lm/lm-ec.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-mathsy.enc}{/usr/sha
 re/texmf/fonts/enc/dvips/lm/lm-rm.enc}{/usr/share/texmf/fonts/enc/dvips/lm/lm-m
 athit.enc}]
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <10> on input line 66.
+(Font)              <10> on input line 68.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <7> on input line 66.
+(Font)              <7> on input line 68.
 
-Underfull \hbox (badness 10000) in alignment at lines 90--90
+Underfull \hbox (badness 10000) in alignment at lines 92--92
 [][][][][] 
  []
 
-<figures/preprocessing_patch_example.pdf, id=98, 548.59857pt x 296.02531pt>
+<figures/preprocessing_patch_example.pdf, id=99, 548.59857pt x 296.02531pt>
 File: figures/preprocessing_patch_example.pdf Graphic file (type pdf)
 <use figures/preprocessing_patch_example.pdf>
 Package pdftex.def Info: figures/preprocessing_patch_example.pdf  used on input
- line 99.
+ line 101.
 (pdftex.def)             Requested size: 469.75502pt x 253.47917pt.
-[2] [3 <./figures/preprocessing_patch_example.pdf>] [4{/usr/share/texmf/fonts/e
-nc/dvips/lm/lm-mathex.enc}] [5]
+[2] [3 <./figures/preprocessing_patch_example.pdf>] [4] [5{/usr/share/texmf/fon
+ts/enc/dvips/lm/lm-mathex.enc}]
 LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 3
-39.
+41.
  (/usr/share/texmf/tex/latex/lm/ts1lmr.fd
 File: ts1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 [6{/usr/share/texmf/fonts/enc/dvips/lm/lm-ts1.enc}]
-<../experiments/plots/rd_curve_psnr_project_zoom.pdf, id=187, 665.98622pt x 446
+<../experiments/plots/rd_curve_psnr_project_zoom.pdf, id=189, 665.98622pt x 446
 .06604pt>
 File: ../experiments/plots/rd_curve_psnr_project_zoom.pdf Graphic file (type pd
 f)
 <use ../experiments/plots/rd_curve_psnr_project_zoom.pdf>
 Package pdftex.def Info: ../experiments/plots/rd_curve_psnr_project_zoom.pdf  u
-sed on input line 353.
+sed on input line 355.
 (pdftex.def)             Requested size: 469.75502pt x 314.63995pt.
-<../experiments/plots/rd_curve_msssim_project_zoom.pdf, id=188, 665.98622pt x 4
+<../experiments/plots/rd_curve_msssim_project_zoom.pdf, id=190, 665.98622pt x 4
 46.06604pt>
 File: ../experiments/plots/rd_curve_msssim_project_zoom.pdf Graphic file (type 
 pdf)
 <use ../experiments/plots/rd_curve_msssim_project_zoom.pdf>
 Package pdftex.def Info: ../experiments/plots/rd_curve_msssim_project_zoom.pdf 
- used on input line 360.
+ used on input line 362.
 (pdftex.def)             Requested size: 469.75502pt x 314.63995pt.
 
-Underfull \hbox (badness 10000) in alignment at lines 384--384
+Underfull \hbox (badness 10000) in alignment at lines 386--386
 [][][][] 
  []
 
-<../experiments/plots/bd_rate_psnr.pdf, id=191, 680.68237pt x 388.76553pt>
+<../experiments/plots/bd_rate_psnr.pdf, id=193, 680.68237pt x 388.76553pt>
 File: ../experiments/plots/bd_rate_psnr.pdf Graphic file (type pdf)
 <use ../experiments/plots/bd_rate_psnr.pdf>
 Package pdftex.def Info: ../experiments/plots/bd_rate_psnr.pdf  used on input l
-ine 394.
+ine 396.
 (pdftex.def)             Requested size: 469.75502pt x 268.30188pt.
-<figures/runtime_components_project.pdf, id=193, 592.2332pt x 324.35779pt>
+[7]
+<figures/runtime_components_project.pdf, id=205, 592.2332pt x 324.35779pt>
 File: figures/runtime_components_project.pdf Graphic file (type pdf)
 <use figures/runtime_components_project.pdf>
 Package pdftex.def Info: figures/runtime_components_project.pdf  used on input 
-line 404.
+line 406.
 (pdftex.def)             Requested size: 469.75502pt x 257.27919pt.
-[7]
-Underfull \hbox (badness 10000) in alignment at lines 424--424
+
+Underfull \hbox (badness 10000) in alignment at lines 426--426
 [][][][][][][][] 
  []
 
@@ -1017,34 +1018,35 @@ Underfull \hbox (badness 10000) in alignment at lines 424--424
 File: figures/runtime_comparison_all.pdf Graphic file (type pdf)
 <use figures/runtime_comparison_all.pdf>
 Package pdftex.def Info: figures/runtime_comparison_all.pdf  used on input line
- 433.
+ 435.
 (pdftex.def)             Requested size: 469.75502pt x 289.61348pt.
-<figures/runtime_bitrate_tradeoff_all.pdf, id=209, 611.35298pt x 343.1268pt>
+[8 <../experiments/plots/rd_curve_psnr_project_zoom.pdf>]
+<figures/runtime_bitrate_tradeoff_all.pdf, id=262, 611.35298pt x 343.1268pt>
 File: figures/runtime_bitrate_tradeoff_all.pdf Graphic file (type pdf)
 <use figures/runtime_bitrate_tradeoff_all.pdf>
 Package pdftex.def Info: figures/runtime_bitrate_tradeoff_all.pdf  used on inpu
-t line 442.
+t line 444.
 (pdftex.def)             Requested size: 469.75502pt x 263.65346pt.
-[8 <../experiments/plots/rd_curve_psnr_project_zoom.pdf>] [9 <../experiments/pl
-ots/rd_curve_msssim_project_zoom.pdf>] [10 <../experiments/plots/bd_rate_psnr.p
-df> <./figures/runtime_components_project.pdf>] [11 <./figures/runtime_comparis
-on_all.pdf> <./figures/runtime_bitrate_tradeoff_all.pdf>]
-Underfull \hbox (badness 10000) in alignment at lines 470--470
+ [9 <../experiments/plots/rd_curve_msssim_project_zoom.pdf>] [10 <../experiment
+s/plots/bd_rate_psnr.pdf> <./figures/runtime_components_project.pdf>] [11 <./fi
+gures/runtime_comparison_all.pdf> <./figures/runtime_bitrate_tradeoff_all.pdf>]
+
+Underfull \hbox (badness 10000) in alignment at lines 472--472
 [][][][][] 
  []
 
-<figures/convergence_q3_none.pdf, id=523, 729.52237pt x 301.75612pt>
+<figures/convergence_q3_none.pdf, id=524, 729.52237pt x 301.75612pt>
 File: figures/convergence_q3_none.pdf Graphic file (type pdf)
 <use figures/convergence_q3_none.pdf>
-Package pdftex.def Info: figures/convergence_q3_none.pdf  used on input line 47
-9.
+Package pdftex.def Info: figures/convergence_q3_none.pdf  used on input line 48
+1.
 (pdftex.def)             Requested size: 469.75502pt x 194.31119pt.
-<figures/reconstruction_panel_q3_kodim03.pdf, id=525, 823.87799pt x 347.98381pt
+<figures/reconstruction_panel_q3_kodim03.pdf, id=526, 823.87799pt x 347.98381pt
 >
 File: figures/reconstruction_panel_q3_kodim03.pdf Graphic file (type pdf)
 <use figures/reconstruction_panel_q3_kodim03.pdf>
 Package pdftex.def Info: figures/reconstruction_panel_q3_kodim03.pdf  used on i
-nput line 489.
+nput line 491.
 (pdftex.def)             Requested size: 469.75502pt x 198.41122pt.
 [12
 
@@ -1060,13 +1062,13 @@ Package rerunfilecheck Info: File `final_report.out' has not changed.
 (rerunfilecheck)             Checksum: 7FDBDD543C0751FF7DEF2320BAF5DAD9;2738.
  ) 
 Here is how much of TeX's memory you used:
- 29560 strings out of 476182
- 592482 string characters out of 5795595
+ 29558 strings out of 476182
+ 592462 string characters out of 5795595
  1951975 words of memory out of 5000000
  50873 multiletter control sequences out of 15000+600000
- 629770 words of font info for 173 fonts, out of 8000000 for 9000
+ 629690 words of font info for 172 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
- 84i,11n,87p,1009b,917s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 84i,11n,87p,1009b,932s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/share/texmf/fonts/type1/public/lm/lmbx12.pfb></usr/share/texmf/fonts/ty
 pe1/public/lm/lmbx9.pfb></usr/share/texmf/fonts/type1/public/lm/lmex10.pfb></us
 r/share/texmf/fonts/type1/public/lm/lmmi10.pfb></usr/share/texmf/fonts/type1/pu
@@ -1081,10 +1083,10 @@ lm/lmsy7.pfb></usr/share/texmf/fonts/type1/public/lm/lmsy9.pfb></usr/share/texm
 f/fonts/type1/public/lm/lmtt10.pfb></usr/share/texmf/fonts/type1/public/lm/lmtt
 9.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10
 .pfb>
-Output written on final_report.pdf (14 pages, 1293469 bytes).
+Output written on final_report.pdf (14 pages, 1293755 bytes).
 PDF statistics:
- 751 PDF objects out of 1000 (max. 8388607)
- 325 compressed objects within 4 object streams
+ 752 PDF objects out of 1000 (max. 8388607)
+ 326 compressed objects within 4 object streams
  71 named destinations out of 1000 (max. 500000)
  40122 words of extra memory for PDF output out of 42996 (max. 10000000)
 
