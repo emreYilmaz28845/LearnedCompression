@@ -271,16 +271,14 @@
     \begin{block}{Training Setup}
       \centering
       4 operating points\\[0.18cm]
-      Adam: \(10^{-4}\) backbone, \(10^{-3}\) SE\\[0.18cm]
-      3 freeze modes for SE adapter test
+      Adam: \(10^{-4}\) backbone, \(10^{-3}\) SE
     \end{block}
 
     \column{0.48\textwidth}
     \begin{exampleblock}{Evaluation}
       \centering
       PSNR\\[0.18cm]
-      true coded bitrate\\[0.18cm]
-      measured with codec calls
+      true coded bitrate
     \end{exampleblock}
   \end{columns}
 \end{frame}
@@ -321,14 +319,14 @@
 
 \begin{frame}{Runtime Evaluation}
   \begin{columns}[T,onlytextwidth]
-    \column{0.60\textwidth}
+    \column{0.52\textwidth}
     \includegraphics[width=\linewidth]{runtime_comparison_all.png}
 
-    \column{0.36\textwidth}
-    \begin{block}{Main Variant Runtime}
+    \column{0.44\textwidth}
+    \begin{block}{Runtime and Params}
       \centering
       \scriptsize
-      \begin{tabular}{lrrr}
+      \begin{tabular}{lccc}
         \toprule
         Variant & Params & Fwd & Codec \\
          & (M) & (ms) & (ms) \\
@@ -336,18 +334,18 @@
         \(A_{\mathrm{ft}}\) & 5.1 & 11.4 & 166 \\
         \(B\) & 5.1 & 11.6 & 169 \\
         \(C\) & 5.1 & 11.7 & 164 \\
+        BMSHJ & 3.0 & 10.4 & 155 \\
+        MBT mean & 7.0 & 11.4 & 170 \\
+        MBT & 14.1 & 16.0 & 2673 \\
+        Cheng & 11.833 / 26.599* & 26.2 & 2806 \\
         \bottomrule
       \end{tabular}
-    \end{block}
 
-    \begin{alertblock}{Interpretation}
-      \scriptsize
-      \begin{itemize}
-        \item SE overhead: \(+0.043\%\) (\(B\)) and \(+0.086\%\) (\(C\)).
-        \item Project variants stay within \(164\) to \(169\) ms/image.
-        \item MBT 2018 / Cheng 2020 are \(16.1\times\) / \(16.9\times\) slower.
-      \end{itemize}
-    \end{alertblock}
+      \vspace{0.08cm}
+
+      {\tiny\color{Stone}\raggedright
+      * Cheng 2020 anchor uses 11.833M parameters for qualities 1--3 and 26.599M for quality 4.\par}
+    \end{block}
   \end{columns}
 \end{frame}
 
@@ -376,10 +374,10 @@
   \begin{alertblock}{Why SE Did Not Help Much Here}
     \small
     \begin{itemize}
-      \item No visual difference: all models look identical at quality level 3.
-      \item The global blanket: one channel weight scales every pixel in that channel.
-      \item The background bottleneck: flat background regions get scaled up too, which can waste bits.
-      \item Cheng 2020 uses a 3D attention map, so flat areas and detailed regions can be weighted differently.
+      \item \textbf{No visual gain:} all variants look the same at quality level 3.
+      \item \textbf{Global blanket:} one weight scales an entire channel everywhere.
+      \item \textbf{Background bottleneck:} flat regions get boosted along with useful detail, wasting bits.
+      \item \textbf{Why Cheng 2020 helps:} spatial attention can suppress flat areas and preserve details.
     \end{itemize}
   \end{alertblock}
 \end{frame}
@@ -401,11 +399,15 @@
       Lightweight transform-side attention is easy to add, but stronger priors and context models are the more promising direction.
     \end{block}
   \end{columns}
+\end{frame}
 
-  \vspace{0.35cm}
-  \begin{exampleblock}{If I Continued This Project}
-    Run multiple seeds, and test richer attention placement or stronger entropy models.
-  \end{exampleblock}
+\begin{frame}[plain]
+  \begin{center}
+    \vspace{1.8cm}
+    {\usebeamerfont{title}\color{Ink}Thank you\par}
+    \vspace{0.45cm}
+    {\Large\color{Stone}Questions?\par}
+  \end{center}
 \end{frame}
 
 \end{document}

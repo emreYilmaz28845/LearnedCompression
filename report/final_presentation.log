@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2026.5.30)  2 JUN 2026 21:56
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023/Debian) (preloaded format=pdflatex 2026.5.30)  2 JUN 2026 22:26
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1191,7 +1191,7 @@ File: presentation_figures/rd_curve_psnr_project_zoom.pdf Graphic file (type pd
 f)
 <use presentation_figures/rd_curve_psnr_project_zoom.pdf>
 Package pdftex.def Info: presentation_figures/rd_curve_psnr_project_zoom.pdf  u
-sed on input line 302.
+sed on input line 300.
 (pdftex.def)             Requested size: 198.02444pt x 129.84102pt.
 <presentation_figures/rd_curve_msssim_project_zoom.pdf, id=76, 730.81215pt x 47
 9.18022pt>
@@ -1199,7 +1199,7 @@ File: presentation_figures/rd_curve_msssim_project_zoom.pdf Graphic file (type
 pdf)
 <use presentation_figures/rd_curve_msssim_project_zoom.pdf>
 Package pdftex.def Info: presentation_figures/rd_curve_msssim_project_zoom.pdf 
- used on input line 302.
+ used on input line 300.
 (pdftex.def)             Requested size: 198.02444pt x 129.84102pt.
  [8
 
@@ -1209,7 +1209,7 @@ s/rd_curve_msssim_project_zoom.pdf>]
 File: presentation_figures/bd_rate_psnr.pdf Graphic file (type pdf)
 <use presentation_figures/bd_rate_psnr.pdf>
 Package pdftex.def Info: presentation_figures/bd_rate_psnr.pdf  used on input l
-ine 320.
+ine 318.
 (pdftex.def)             Requested size: 257.45705pt x 147.81651pt.
  [9
 
@@ -1218,18 +1218,18 @@ ine 320.
 File: figures/runtime_comparison_all.png Graphic file (type png)
 <use figures/runtime_comparison_all.png>
 Package pdftex.def Info: figures/runtime_comparison_all.png  used on input line
- 352.
-(pdftex.def)             Requested size: 247.54149pt x 152.54758pt.
+ 350.
+(pdftex.def)             Requested size: 214.53554pt x 132.20406pt.
  [10
 
  <./figures/runtime_comparison_all.png>]
-<figures/reconstruction_panel_q3_kodim03_zoom_only.png, id=251, 1811.8089pt x 4
+<figures/reconstruction_panel_q3_kodim03_zoom_only.png, id=248, 1811.8089pt x 4
 29.2838pt>
 File: figures/reconstruction_panel_q3_kodim03_zoom_only.png Graphic file (type 
 png)
 <use figures/reconstruction_panel_q3_kodim03_zoom_only.png>
 Package pdftex.def Info: figures/reconstruction_panel_q3_kodim03_zoom_only.png 
- used on input line 373.
+ used on input line 371.
 (pdftex.def)             Requested size: 379.559pt x 89.92953pt.
  [11
 
@@ -1237,6 +1237,8 @@ Package pdftex.def Info: figures/reconstruction_panel_q3_kodim03_zoom_only.png
 [12
 
 ] [13
+
+] [14
 
 ]
 \tf@nav=\write6
@@ -1257,30 +1259,29 @@ Package rerunfilecheck Info: File `final_presentation.out' has not changed.
 (rerunfilecheck)             Checksum: D41D8CD98F00B204E9800998ECF8427E;0.
  ) 
 Here is how much of TeX's memory you used:
- 31343 strings out of 476182
- 656599 string characters out of 5795595
+ 31353 strings out of 476182
+ 656727 string characters out of 5795595
  1940975 words of memory out of 5000000
- 52641 multiletter control sequences out of 15000+600000
- 649288 words of font info for 143 fonts, out of 8000000 for 9000
+ 52645 multiletter control sequences out of 15000+600000
+ 652258 words of font info for 146 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
  101i,15n,107p,1015b,1101s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/share/texmf/fonts/type1/public/lm/lmmi10.pfb></usr/share/texmf/fonts/ty
-pe1/public/lm/lmmi7.pfb></usr/share/texmf/fonts/type1/public/lm/lmmi9.pfb></usr
-/share/texmf/fonts/type1/public/lm/lmr5.pfb></usr/share/texmf/fonts/type1/publi
-c/lm/lmr6.pfb></usr/share/texmf/fonts/type1/public/lm/lmr7.pfb></usr/share/texm
-f/fonts/type1/public/lm/lmss10.pfb></usr/share/texmf/fonts/type1/public/lm/lmss
-12.pfb></usr/share/texmf/fonts/type1/public/lm/lmss8.pfb></usr/share/texmf/font
-s/type1/public/lm/lmss9.pfb></usr/share/texmf/fonts/type1/public/lm/lmssbx10.pf
-b></usr/share/texmf/fonts/type1/public/lm/lmsso10.pfb></usr/share/texmf/fonts/t
-ype1/public/lm/lmsso8.pfb></usr/share/texmf/fonts/type1/public/lm/lmsso9.pfb></
-usr/share/texmf/fonts/type1/public/lm/lmsy10.pfb></usr/share/texmf/fonts/type1/
-public/lm/lmsy7.pfb></usr/share/texmf/fonts/type1/public/lm/lmsy9.pfb></usr/sha
-re/texlive/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb></usr/shar
-e/texlive/texmf-dist/fonts/type1/public/amsfonts/symbols/msam7.pfb>
-Output written on final_presentation.pdf (13 pages, 2947346 bytes).
+pe1/public/lm/lmmi9.pfb></usr/share/texmf/fonts/type1/public/lm/lmr5.pfb></usr/
+share/texmf/fonts/type1/public/lm/lmr6.pfb></usr/share/texmf/fonts/type1/public
+/lm/lmr7.pfb></usr/share/texmf/fonts/type1/public/lm/lmss10.pfb></usr/share/tex
+mf/fonts/type1/public/lm/lmss12.pfb></usr/share/texmf/fonts/type1/public/lm/lms
+s8.pfb></usr/share/texmf/fonts/type1/public/lm/lmss9.pfb></usr/share/texmf/font
+s/type1/public/lm/lmssbx10.pfb></usr/share/texmf/fonts/type1/public/lm/lmsso10.
+pfb></usr/share/texmf/fonts/type1/public/lm/lmsso8.pfb></usr/share/texmf/fonts/
+type1/public/lm/lmsso9.pfb></usr/share/texmf/fonts/type1/public/lm/lmsy10.pfb><
+/usr/share/texmf/fonts/type1/public/lm/lmsy7.pfb></usr/share/texmf/fonts/type1/
+public/lm/lmsy9.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/
+symbols/msam10.pfb>
+Output written on final_presentation.pdf (14 pages, 2934352 bytes).
 PDF statistics:
- 366 PDF objects out of 1000 (max. 8388607)
- 155 compressed objects within 2 object streams
- 27 named destinations out of 1000 (max. 500000)
- 57435 words of extra memory for PDF output out of 61914 (max. 10000000)
+ 358 PDF objects out of 1000 (max. 8388607)
+ 151 compressed objects within 2 object streams
+ 29 named destinations out of 1000 (max. 500000)
+ 59483 words of extra memory for PDF output out of 61914 (max. 10000000)
 
