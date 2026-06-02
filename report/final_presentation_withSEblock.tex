@@ -229,6 +229,36 @@
   \end{columns}
 \end{frame}
 
+\begin{frame}{SE Block: General Idea}
+  \begin{center}
+    \resizebox{0.92\linewidth}{!}{%
+      \begin{tikzpicture}[
+        font=\small,
+        feature/.style={draw, rounded corners=5pt, minimum width=2.7cm, minimum height=0.95cm, align=center, fill=Sky},
+        op/.style={draw, rounded corners=5pt, minimum width=2.0cm, minimum height=0.82cm, align=center, fill=Sand},
+        gate/.style={draw, rounded corners=5pt, minimum width=2.2cm, minimum height=0.82cm, align=center, fill=Orange!14},
+        arr/.style={-{Latex[length=2.6mm]}, thick, color=Ink}
+      ]
+        \node[feature] (x) at (0.0,0.0) {Feature\\Maps};
+        \node[op] (mul) at (5.7,0.0) {Multiply};
+        \node[feature] (out) at (9.6,0.0) {Refined\\Features};
+
+        \node[op] (pool) at (0.0,-1.85) {Global\\Pool};
+        \node[gate] (mlp) at (0.0,-3.45) {MLP};
+        \node[gate] (weights) at (0.0,-5.05) {Channel\\Weights};
+
+        \draw[arr] (x.east) -- (mul.west);
+        \draw[arr] (mul.east) -- (out.west);
+
+        \draw[arr] (x.south) -- (pool.north);
+        \draw[arr] (pool.south) -- (mlp.north);
+        \draw[arr] (mlp.south) -- (weights.north);
+        \draw[arr] (weights.east) -| (mul.south);
+      \end{tikzpicture}%
+    }
+  \end{center}
+\end{frame}
+
 \begin{frame}{Training Objective}
   \begin{alertblock}{Rate-Distortion Loss}
     \[
@@ -366,7 +396,7 @@
 
     \column{0.32\textwidth}
     \begin{block}{3. Takeaway}
-      Lightweight transform-side attention is easy to add, but stronger priors are the more promising direction.
+      Lightweight transform-side attention is easy to add, but stronger priors and context models are the more promising direction.
     \end{block}
   \end{columns}
 \end{frame}
