@@ -12,7 +12,7 @@
 \usepackage{amsmath, amssymb}
 \usepackage{siunitx}
 \usepackage{tikz}
-\usetikzlibrary{arrows.meta, positioning, fit}
+\usetikzlibrary{arrows.meta, positioning, fit, calc}
 
 \graphicspath{{figures/}{presentation_figures/}{../experiments/plots/}}
 \setbeamertemplate{navigation symbols}{}
@@ -229,6 +229,36 @@
   \end{columns}
 \end{frame}
 
+\begin{frame}{SE Block: General Idea}
+  \begin{center}
+    \resizebox{0.92\linewidth}{!}{%
+      \begin{tikzpicture}[
+        font=\small,
+        feature/.style={draw, rounded corners=5pt, minimum width=2.7cm, minimum height=0.95cm, align=center, fill=Sky},
+        op/.style={draw, rounded corners=5pt, minimum width=2.0cm, minimum height=0.82cm, align=center, fill=Sand},
+        gate/.style={draw, rounded corners=5pt, minimum width=2.2cm, minimum height=0.82cm, align=center, fill=Orange!14},
+        arr/.style={-{Latex[length=2.6mm]}, thick, color=Ink}
+      ]
+        \node[feature] (x) at (0.0,0.0) {Feature\\Maps};
+        \node[op] (mul) at (5.7,0.0) {Multiply};
+        \node[feature] (out) at (9.6,0.0) {Refined\\Features};
+
+        \node[op] (pool) at (0.0,-1.85) {Global\\Pool};
+        \node[gate] (mlp) at (0.0,-3.45) {MLP};
+        \node[gate] (weights) at (0.0,-5.05) {Channel\\Weights};
+
+        \draw[arr] (x.east) -- (mul.west);
+        \draw[arr] (mul.east) -- (out.west);
+
+        \draw[arr] (x.south) -- (pool.north);
+        \draw[arr] (pool.south) -- (mlp.north);
+        \draw[arr] (mlp.south) -- (weights.north);
+        \draw[arr] (weights.east) -| (mul.south);
+      \end{tikzpicture}%
+    }
+  \end{center}
+\end{frame}
+
 \begin{frame}{Training Objective}
   \begin{alertblock}{Rate-Distortion Loss}
     \[
@@ -248,7 +278,7 @@
     \column{0.48\textwidth}
     \begin{exampleblock}{Evaluation}
       \centering
-      PSNR + MS-SSIM\\[0.18cm]
+      PSNR\\[0.18cm]
       true coded bitrate\\[0.18cm]
       measured with codec calls
     \end{exampleblock}
@@ -321,9 +351,8 @@
   \end{columns}
 \end{frame}
 
-\begin{frame}{Discussion}
-  \begin{columns}[T,onlytextwidth]
-    \column{0.58\textwidth}
+\begin{frame}{Image Comparison}
+  \begin{center}
     \begin{columns}[T,onlytextwidth]
       \column{0.24\textwidth}
       {\scriptsize\centering Input\par}
@@ -334,22 +363,25 @@
       \column{0.24\textwidth}
       {\scriptsize\centering Encoder+Decoder SE\par}
     \end{columns}
-    \vspace{0.06cm}
-    \includegraphics[width=\linewidth]{reconstruction_panel_q3_kodim03_zoom_only.png}
 
-    \vspace{0.12cm}
-    {\small\color{Stone}\centering no visible difference at quality 3\par}
+    \vspace{0.08cm}
+    \includegraphics[width=0.92\linewidth]{reconstruction_panel_q3_kodim03_zoom_only.png}
 
-    \column{0.38\textwidth}
-    \begin{alertblock}{Discussion}
-      \small
-      \begin{itemize}
-        \item No visible SE gain
-        \item Coded bitrate corrected the story
-        \item Weak SE adapters; priors matter more
-      \end{itemize}
-    \end{alertblock}
-  \end{columns}
+    \vspace{0.14cm}
+    {\small\color{Stone}\centering no visible difference at quality level 3\par}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Discussion}
+  \begin{alertblock}{Why SE Did Not Help Much Here}
+    \small
+    \begin{itemize}
+      \item No visual difference: all models look identical at quality level 3.
+      \item The global blanket: one channel weight scales every pixel in that channel.
+      \item The background bottleneck: flat background regions get scaled up too, which can waste bits.
+      \item Cheng 2020 uses a 3D attention map, so flat areas and detailed regions can be weighted differently.
+    \end{itemize}
+  \end{alertblock}
 \end{frame}
 
 \begin{frame}{Conclusion}
@@ -372,7 +404,7 @@
 
   \vspace{0.35cm}
   \begin{exampleblock}{If I Continued This Project}
-    Run multiple seeds, train an MS-SSIM-optimized variant, and test richer attention placement or stronger entropy models.
+    Run multiple seeds, and test richer attention placement or stronger entropy models.
   \end{exampleblock}
 \end{frame}
 
